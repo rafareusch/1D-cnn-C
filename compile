@@ -1,0 +1,2 @@
+ gcc -o model model.c -w
+
