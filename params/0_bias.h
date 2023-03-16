@@ -1,4 +1,4 @@
-extern const float in_1[64] = { \
+extern const float conv0_bias[64] = { \
 0.4263, \ 
 -0.1657, \ 
 -0.1723, \ 
