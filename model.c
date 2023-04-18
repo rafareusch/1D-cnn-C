@@ -25,7 +25,9 @@
 #define CONV6_INPUT_SIZE 112 
 #define FC1_OUTPUT_SIZE 128
 #define FC2_OUTPUT_SIZE 5
-// #define DEBUG 0
+
+
+#define MULTIP 10000
 
 main(){
 
@@ -65,6 +67,11 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
     float conv0_currentKernel[KERNEL_SIZE];
     float conv0_current_bias = 0;
     float conv0_featureMap[NUM_FILTERS][CONV0_INPUT_SIZE-4];
+    int INTconv0_featureMap[NUM_FILTERS][CONV0_INPUT_SIZE-4];
+    int INTconv0_currentKernel[KERNEL_SIZE];
+    int INTconv0_current_bias = 0;
+
+    //printf(" Conv0 #################################################################\n");
 
     for (int k = 0; k < NUM_FILTERS; k++)
     {
@@ -72,35 +79,56 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         for (i = 0; i < KERNEL_SIZE; i++)
         {
             conv0_currentKernel[i] = conv0_weights[i + (k * KERNEL_SIZE)];
+            INTconv0_currentKernel[i] = (int) (MULTIP * conv0_weights[i + (k * KERNEL_SIZE)]);
         }
 
         // Load Current Bias
         conv0_current_bias = conv0_bias[k];
-        
+        INTconv0_current_bias = (int) (MULTIP * conv0_bias[k]);
 
 
         // Perform Kernel operation
         for (i = 0; i <= sizeof(input_vector)/sizeof(input_vector[0])-KERNEL_SIZE; i++)
         {
             float totalSum = 0;
+            float INTtotalSum = 0;
+
             for (int j = 0; j < KERNEL_SIZE; j++)
             {
                totalSum += input_vector[i+j] * conv0_currentKernel[j];
+               INTtotalSum += ((int)( (input_vector[i+j] + (float)(5/(float)MULTIP) ) * MULTIP)) * INTconv0_currentKernel[j];
             }
-
             conv0_featureMap[k][i] = totalSum + conv0_current_bias;
+            INTconv0_featureMap[k][i] = INTtotalSum + INTconv0_current_bias;
         }
     }
-///// RELU
+
+    
+//////////////////////////////// INT HANDLER
+// divide the feature map items by MULTIP
+    for (int i = 0; i < NUM_FILTERS; i++)
+    {
+        for (int j = 0; j < CONV0_INPUT_SIZE-4; j++)
+        {
+            // printf("---------------\n");
+            // printf("%2.8f %2.8f\n",conv0_featureMap[0][j], ((float) (INTconv0_featureMap[0][j]))/(MULTIP*MULTIP) );
+            // printf("%2.8f %2.8f\n",conv0_featureMap[0][j], ((float) (INTconv0_featureMap[0][j]))/(MULTIP) );
+            INTconv0_featureMap[i][j] = (INTconv0_featureMap[i][j])/(MULTIP);
+        }
+    }
+
+
+
 
 ///// RELU
     for (int i = 0; i < NUM_FILTERS; i++)
     {
         for (int j = 0; j < CONV0_INPUT_SIZE-4; j++)
         {
-            
             if (conv0_featureMap[i][j] <= 0)
-                conv0_featureMap[i][j] = 0;    
+                conv0_featureMap[i][j] = 0;
+            if (INTconv0_featureMap[i][j] <= 0)
+                INTconv0_featureMap[i][j] = 0;     
         }
     }
 
@@ -108,27 +136,47 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// LAYER 3
 // CONVOLUTION 3
     float conv3_featureMap[NUM_FILTERS][CONV3_INPUT_SIZE-4]; // 112
-
-
-
     float conv3_totalSum = 0;
+
+    int INTconv3_featureMap[NUM_FILTERS][CONV3_INPUT_SIZE-4]; // 112
+    int INTconv3_totalSum = 0;
+
     for (int filterToGenerate = 0 ; filterToGenerate < NUM_FILTERS ; filterToGenerate ++ ){
         for (int inputOffset = 0 ; inputOffset < CONV3_INPUT_SIZE-4 ; inputOffset++){
             conv3_totalSum = 0;
+            INTconv3_totalSum = 0;
             for (int filterIn = 0 ; filterIn < NUM_FILTERS ; filterIn++){
                 for (int kernelIndex = 0 ; kernelIndex < KERNEL_SIZE ; kernelIndex++){
                     int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
                     int indexIn = kernelIndex + (inputOffset);
-                    conv3_totalSum += conv0_featureMap[filterIn][indexIn] * conv3_weights[weightIndex]; 
 
+                    conv3_totalSum += conv0_featureMap[filterIn][indexIn] * conv3_weights[weightIndex]; 
+                    INTconv3_totalSum += INTconv0_featureMap[filterIn][indexIn] *  ((int) (conv3_weights[weightIndex] * MULTIP))  ; 
                 }
             }
             conv3_totalSum += conv3_bias[filterToGenerate];
             conv3_featureMap[filterToGenerate][inputOffset] = conv3_totalSum;
+
+            INTconv3_totalSum += ( (int) conv3_bias[filterToGenerate] * MULTIP);
+            INTconv3_featureMap[filterToGenerate][inputOffset] = INTconv3_totalSum;
         }
     }
     
     
+
+//////////////////////////////// INT HANDLER
+// divide the feature map items by MULTIP
+    for (int i = 0; i < NUM_FILTERS; i++)
+    {
+        for (int j = 0; j < CONV3_INPUT_SIZE-4; j++)
+        {            
+            // printf("conv3---------------\n");
+            // printf("%2.8f %2.8f\n",conv3_featureMap[i][j], ((float) (INTconv3_featureMap[i][j]))/(MULTIP*MULTIP) );
+            // printf("%2.8f %2.8f\n",conv3_featureMap[i][j], ((float) (INTconv3_featureMap[i][j]))/(MULTIP) );
+            INTconv3_featureMap[i][j] = (INTconv3_featureMap[i][j])/(MULTIP);
+        }
+    }
+
 
     
 ///// RELU
@@ -136,8 +184,12 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
     {
         for (int j = 0; j < CONV3_INPUT_SIZE-4; j++)
         {
+
+
             if (conv3_featureMap[i][j] <= 0)
                 conv3_featureMap[i][j] = 0;        
+            if (INTconv3_featureMap[i][j] <= 0)
+                INTconv3_featureMap[i][j] = 0; 
         }
     }
 
@@ -146,32 +198,56 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
 // CONVOLUTION 6
 
     float conv6_featureMap[NUM_FILTERS][CONV6_INPUT_SIZE-4]; 
+    float conv6_totalSum = 0;
+    int INTconv6_featureMap[NUM_FILTERS][CONV6_INPUT_SIZE-4]; 
+    int INTconv6_totalSum = 0;
 
-
-    float totalSum = 0;
     for (int filterToGenerate = 0 ; filterToGenerate < NUM_FILTERS ; filterToGenerate ++ ){
         for (int inputOffset = 0 ; inputOffset < CONV6_INPUT_SIZE-4 ; inputOffset++){
-            totalSum = 0;
+            conv6_totalSum = 0;
+            INTconv6_totalSum = 0;
             for (int filterIn = 0 ; filterIn < NUM_FILTERS ; filterIn++){
                 for (int kernelIndex = 0 ; kernelIndex < KERNEL_SIZE ; kernelIndex++){
                     int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
                     int indexIn = kernelIndex + (inputOffset);
-                    totalSum += conv3_featureMap[filterIn][indexIn] * conv6_weights[weightIndex]; 
+                    conv6_totalSum += conv3_featureMap[filterIn][indexIn] * conv6_weights[weightIndex]; 
+                    INTconv6_totalSum += conv3_featureMap[filterIn][indexIn] * ((int) (conv6_weights[weightIndex] * MULTIP)); 
                 }
             }
-            totalSum += conv6_bias[filterToGenerate];
-            conv6_featureMap[filterToGenerate][inputOffset] = totalSum;
+            conv6_totalSum += conv6_bias[filterToGenerate];
+            conv6_featureMap[filterToGenerate][inputOffset] = conv6_totalSum;
+            INTconv6_totalSum += ( (int) conv6_bias[filterToGenerate] * MULTIP);
+            INTconv6_featureMap[filterToGenerate][inputOffset] = INTconv6_totalSum;
         }
     }
     
+
+//////////////////////////////// INT HANDLER
+// divide the feature map items by MULTIP
+    for (int i = 0; i < NUM_FILTERS; i++)
+    {
+        for (int j = 0; j < CONV6_INPUT_SIZE-4; j++)
+        {            
+            //printf("conv6---------------\n");
+            // printf("%2.8f %2.8f\n",conv6_featureMap[i][j], ((float) (INTconv6_featureMap[i][j]))/(MULTIP*MULTIP) );
+            //printf("%2.8f %2.8f\n",conv6_featureMap[i][j], ((float) (INTconv6_featureMap[i][j]))/(MULTIP) );
+            // INTconv6_featureMap[i][j] = (INTconv6_featureMap[i][j])/(MULTIP);
+        }
+    }
+
     
 /////////////////////////// RELU
     for (int i = 0; i < NUM_FILTERS; i++)
     {
         for (int j = 0; j < CONV6_INPUT_SIZE-4; j++)
         {
+            conv6_featureMap[i][j] = ((float) (INTconv6_featureMap[i][j]))/(MULTIP);
+
             if (conv6_featureMap[i][j] <= 0)
-                conv6_featureMap[i][j] = 0;            
+                conv6_featureMap[i][j] = 0; 
+            if (INTconv6_featureMap[i][j] <= 0)
+                INTconv6_featureMap[i][j] = 0; 
+            // printf("%2.8f %2.8f\n",conv6_featureMap[i][j], ((float) (INTconv6_featureMap[i][j]))/(MULTIP) );          
         }
     }
 
