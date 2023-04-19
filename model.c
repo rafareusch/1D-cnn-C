@@ -52,7 +52,7 @@ void print_confusion_matrix(int *expected, int *predicted, int n) {
     for (i = 0; i < n; i++) {
         printf("   %d ", i);
     }
-    printf("\n");
+    printf("\n\n");
     for (i = 0; i < n; i++) {
         printf("%d: ", i);
         for (j = 0; j < n; j++) {
@@ -61,9 +61,6 @@ void print_confusion_matrix(int *expected, int *predicted, int n) {
         printf("\n");
     }
 }
-
-
-
 
 
 
