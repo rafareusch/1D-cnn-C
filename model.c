@@ -25,25 +25,59 @@
 #define CONV6_INPUT_SIZE 112 
 #define FC1_OUTPUT_SIZE 128
 #define FC2_OUTPUT_SIZE 5
-// #define DEBUG 0
+
+
+
+
+
+void print_confusion_matrix(int *expected, int *predicted, int n) {
+    int matrix[n][n];
+    int i, j;
+    
+    // Inicializa a matriz de confusão com zeros
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < n; j++) {
+            matrix[i][j] = 0;
+        }
+    }
+    
+    // Preenche a matriz de confusão com os valores esperados e calculados
+    for (i = 0; i < DATASET_UNITS; i++) {
+        matrix[expected[i]][predicted[i]]++;
+    }
+    
+    // Imprime a matriz de confusão
+    printf("Confusion Matrix:\n");
+    printf("   ");
+    for (i = 0; i < n; i++) {
+        printf("   %d ", i);
+    }
+    printf("\n");
+    for (i = 0; i < n; i++) {
+        printf("%d: ", i);
+        for (j = 0; j < n; j++) {
+            printf("   %d ", matrix[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+
+
+
+
 
 main(){
-
     printf("Boot... ");
-
-
-
     int i = 0;
     float input_vector[INPUT_SIZE]; 
-    int label;
+    int targetLabel;
     int correctLabels = 0;
     int wrongLabels = 0;
-
-
+    int predictedList[DATASET_UNITS];
+    int expectedList[DATASET_UNITS];
+    int listIndex = 0;
     printf("Evaluating...\n");
-
-
-
 
 for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
 
@@ -53,7 +87,7 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
 
 
     int startingIndex = datasetIndex * 121; //input + label
-    label = dataset120[startingIndex + INPUT_SIZE];
+    targetLabel = dataset120[startingIndex + INPUT_SIZE];
 
     for(i = 0 ; i < INPUT_SIZE ; i++){
         input_vector[i] = dataset120[startingIndex + i];
@@ -244,6 +278,8 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
 
     float maxValue = fc2_out_vector[0];
     int calculatedLabel = 0;
+ 
+
     for (int i = 0; i < 5; i++){
         if (fc2_out_vector[i] > maxValue){
              maxValue = fc2_out_vector[i];
@@ -251,13 +287,17 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         }
     }
 
-    if ( label == calculatedLabel){
-        printf("Correct prediction (predicted %d) (correct %d)\n",calculatedLabel,label);
+    if ( targetLabel == calculatedLabel){
+        printf("Correct prediction (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
         correctLabels++;
     } else {
-        printf("Wrong prediction  (predicted %d) (correct %d)\n",calculatedLabel,label);
+        printf("Wrong prediction  (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
         wrongLabels++;
     }
+
+    predictedList[listIndex] = calculatedLabel;
+    expectedList[listIndex] = targetLabel;
+    listIndex++;
 
 
 }
@@ -266,8 +306,15 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
     printf("----------\n");
     printf("Correct predictions: %d \n",correctLabels);
     printf("Wrong predictions: %d \n",wrongLabels);
-    
+    printf("----------------------\n");
+    printf("Confusion Matrix\n");
+    print_confusion_matrix(&predictedList,&expectedList,5);
+
+
 
     printf(" \n------------------------------------------------------------- End..");
     return 0;
 }
+
+
+
