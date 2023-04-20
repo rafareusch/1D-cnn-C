@@ -21,3 +21,11 @@ This branch aims to generate an quantized model using LUT tables and various tec
 ./model
 
 ##### Note: Compile bash contains a supress all warnings command to prevent long compile times due the weights #include
+
+
+
+## Aditional Scripts
+
+### convertTensor.py
+This script converts the pytorch extracted tensor and generates an array file to be included in C
+##### Note: If error is found due to wrong character detecter, check if the end of the tensor contains an cuda configuration, if YES, remove it. (Remove the object, including the ",")
