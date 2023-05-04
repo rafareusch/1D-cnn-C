@@ -123,8 +123,8 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         for (i = 0; i < KERNEL_SIZE; i++)
         {
             // conv0_currentKernel[i] =   conv0_weights[i + (k * KERNEL_SIZE)];
-            // printf("%f   %f (%d)  \n",conv0_weights[i + (k * KERNEL_SIZE)], conv0_weights_lut[ conv0_weights_indices[i + (k * KERNEL_SIZE)] ],conv0_weights_indices[i + (k * KERNEL_SIZE)] );
             conv0_currentKernel[i] =   conv0_weights_lut[conv0_weights_indices[i + (k * KERNEL_SIZE)]];
+            // printf("%f   %f (%d)  \n",conv0_weights[i + (k * KERNEL_SIZE)], conv0_weights_lut[ conv0_weights_indices[i + (k * KERNEL_SIZE)] ],conv0_weights_indices[i + (k * KERNEL_SIZE)] );
         }
 
         // Load Current Bias

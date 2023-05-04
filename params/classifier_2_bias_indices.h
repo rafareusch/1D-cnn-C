@@ -1,5 +1,5 @@
-const int fc2_bias_indices[5] = {102,
-204,
+const int fc2_bias_indices[5] = {66,
+244,
 0,
-153,
-51};
+147,
+0};

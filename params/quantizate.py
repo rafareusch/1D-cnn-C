@@ -59,8 +59,8 @@ filename = sys.argv[1]
 n_bins = 256
 
 data = extract_floats(filename)
-#bin_ranges, lookup_table = calculate_bin_ranges(data, n_bins)
-bin_ranges, lookup_table = calculate_variable_bins(data, n_bins)
+bin_ranges, lookup_table = calculate_bin_ranges(data, n_bins)
+# bin_ranges, lookup_table = calculate_variable_bins(data, n_bins)
 indices = bin_indices(data, bin_ranges)
 
 
