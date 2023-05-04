@@ -272,13 +272,13 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         totalValue = 0;
         for (int i = 0; i < fc1_inputSize; i++)
         {
-             totalValue += flatten1_vector[i] * fc1_weights[(fc1_inputSize*outputIndex)+i];
-            //totalValue += flatten1_vector[i] * fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]];
+            //totalValue += flatten1_vector[i] * fc1_weights[(fc1_inputSize*outputIndex)+i];
+            totalValue += flatten1_vector[i] * fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]];
             //printf("%f   %f (%d)    Err:%f \n", fc1_weights[(fc1_inputSize*outputIndex)+i] , fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]], fc1_weights_indices[(fc1_inputSize*outputIndex)+i], fc1_weights[(fc1_inputSize*outputIndex)+i] - fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]] );
             // printf("%f   %f (%d)    Err:%f \n", aaa , bbbb, ccccc, aaa - bbb );
         }
-        fc1_out_vector[outputIndex] = totalValue + fc1_bias[outputIndex];
-        //fc1_out_vector[outputIndex] = totalValue + fc1_bias_lut[fc1_bias_indices[outputIndex]];
+        //fc1_out_vector[outputIndex] = totalValue + fc1_bias[outputIndex];
+        fc1_out_vector[outputIndex] = totalValue + fc1_bias_lut[fc1_bias_indices[outputIndex]];
     }
 
 
@@ -298,11 +298,11 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         fc2_totalValue = 0;
         for (int i = 0; i < FC1_OUTPUT_SIZE; i++)
         {
-            fc2_totalValue += fc1_out_vector[i] * fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i];
-            //fc2_totalValue += fc1_out_vector[i] * fc2_weights_lut[fc2_weights_indices[(FC1_OUTPUT_SIZE*outputIndex)+i]];
+            //fc2_totalValue += fc1_out_vector[i] * fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i];
+            fc2_totalValue += fc1_out_vector[i] * fc2_weights_lut[fc2_weights_indices[(FC1_OUTPUT_SIZE*outputIndex)+i]];
         }
-        fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias[outputIndex];
-        //fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias_lut[fc2_bias_indices[outputIndex]];
+        //fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias[outputIndex];
+        fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias_lut[fc2_bias_indices[outputIndex]];
     }
 
 
