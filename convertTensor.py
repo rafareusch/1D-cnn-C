@@ -74,10 +74,10 @@ for x in f:
             word = word.strip()
             if (word != ''):
                 if currentSize == arraySize-1:
-                    outfile.write(str(float(word)))
+                    outfile.write("{:8f}".format(float(word)))
                     outfile.write(" };")
                 else:
-                     outfile.write(str(float(word)))
+                     outfile.write("{:8f}".format(float(word)))
                      outfile.write(", \ \n")
                 currentSize += 1
     lineCount += 1
