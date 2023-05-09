@@ -1,4 +1,4 @@
-const int conv6_weights_indices[20480] = {90,
+const unsigned char conv6_weights_indices[20480] = {90,
 112,
 93,
 59,

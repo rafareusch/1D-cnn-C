@@ -1,4 +1,4 @@
-const int fc2_bias_indices[5] = {102,
+const unsigned char fc2_bias_indices[5] = {102,
 204,
 0,
 153,

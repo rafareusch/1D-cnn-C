@@ -1,4 +1,4 @@
-const int fc1_weights_indices[884736] = {
+const unsigned char fc1_weights_indices[884736] = {
 171,
 250,
 210,

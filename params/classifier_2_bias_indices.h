@@ -1,5 +1,5 @@
-const int fc2_bias_indices[5] = {66,
-244,
+const unsigned char fc2_bias_indices[5] = {33,
+122,
 0,
-147,
+73,
 0};

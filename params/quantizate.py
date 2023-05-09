@@ -55,12 +55,29 @@ def bin_indices(data, bin_ranges):
     return indices
 
 # exemplo de uso
-filename = sys.argv[1]
-n_bins = 256
+
+if len(sys.argv) > 3:
+    filename = sys.argv[1]
+    n_bins = int(sys.argv[2])
+    mode = sys.argv[3]
+else:
+    print("USAGE python quantizate.py FILENAME NUM_BINS MODE")
+    print("e.g. python quantizate.py 0_weight.txt 16 fixed")
+    quit(1)
+
+
 
 data = extract_floats(filename)
-bin_ranges, lookup_table = calculate_bin_ranges(data, n_bins)
-# bin_ranges, lookup_table = calculate_variable_bins(data, n_bins)
+
+if mode == "fixed":
+    print("MODE : FIXED")
+    print("BINS : "+ str(n_bins))
+    bin_ranges, lookup_table = calculate_bin_ranges(data, n_bins)
+if mode == "variable":
+    print("MODE : VARIABLE")
+    print("BINS : "+ str(n_bins))
+    bin_ranges, lookup_table = calculate_variable_bins(data, n_bins)
+
 indices = bin_indices(data, bin_ranges)
 
 
@@ -72,9 +89,34 @@ indices = bin_indices(data, bin_ranges)
 #         f.write(f"Bin: [{start:.4f}, {end:.4f}]\n")
 
 
-# constrói a string com os arrays em C
-lookup_table_str = "const float lut[%d] = {" % len(lookup_table) + "\n".join([f"{val:.4f}," for val in lookup_table])[:-1] + "};\n"
-indices_str = "const char indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+
+if filename == "0_bias.h":
+    arrayName = "conv0_bias"
+if filename == "0_weight.h":
+    arrayName = "conv0_weights"
+
+if filename == "3_bias.h":
+    arrayName = "conv3_bias"
+if filename == "3_weight.h":
+    arrayName = "conv3_weights"
+
+if filename == "6_bias.h":
+    arrayName = "conv6_bias"
+if filename == "6_weight.h":
+    arrayName = "conv6_weights"
+
+if filename == "classifier_1_bias.h":
+    arrayName = "fc1_bias"
+if filename == "classifier_1_weight.h":
+    arrayName = "fc1_weights"
+
+if filename == "classifier_2_bias.h":
+    arrayName = "fc2_bias"
+if filename == "classifier_2_weight.h":
+    arrayName = "fc2_weights"
+
+lookup_table_str = "const float " + arrayName + "_lut[%d] = {" % len(lookup_table) + "\n".join([f"{val:.4f}," for val in lookup_table])[:-1] + "};\n"
+indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
 
 
 

@@ -1,4 +1,4 @@
-const int conv6_bias_indices[64] = {97,
+const unsigned char conv6_bias_indices[64] = {97,
 94,
 0,
 161,

@@ -1,0 +1,20 @@
+if [ -z "$1" ]
+  then
+    echo "USAGE ./quantizate NUM_BINS MODE"
+    exit 1
+fi
+if [ -z "$2" ]
+  then
+    echo "USAGE ./quantizate NUM_BINS MODE"
+    exit 1
+fi
+python quantizate.py 0_bias.h $1 $2 
+python quantizate.py 3_bias.h $1 $2
+python quantizate.py 6_bias.h $1 $2
+python quantizate.py classifier_1_bias.h $1 $2
+python quantizate.py classifier_2_bias.h $1 $2
+python quantizate.py 0_weight.h $1 $2
+python quantizate.py 3_weight.h $1 $2
+python quantizate.py 6_weight.h $1 $2
+python quantizate.py classifier_1_weight.h $1 $2
+python quantizate.py classifier_2_weight.h $1 $2

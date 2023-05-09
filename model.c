@@ -22,16 +22,18 @@
 #include "params/classifier_1_bias_indices.h"
 #include "params/classifier_2_bias_lut.h"
 #include "params/classifier_2_bias_indices.h"
-#include "params/0_bias.h"
-#include "params/3_bias.h"
-#include "params/6_bias.h"
-#include "params/0_weight.h"
-#include "params/3_weight.h"
-#include "params/6_weight.h"
-#include "params/classifier_1_weight.h"
-#include "params/classifier_2_weight.h"
-#include "params/classifier_1_bias.h"
-#include "params/classifier_2_bias.h"
+
+
+// #include "params/0_bias.h"
+// #include "params/3_bias.h"
+// #include "params/6_bias.h"
+// #include "params/0_weight.h"
+// #include "params/3_weight.h"
+// #include "params/6_weight.h"
+// #include "params/classifier_1_weight.h"
+// #include "params/classifier_2_weight.h"
+// #include "params/classifier_1_bias.h"
+// #include "params/classifier_2_bias.h"
 
 #include "params/dataset120_eval.h" // 3923 
 #define DATASET_UNITS 3923
