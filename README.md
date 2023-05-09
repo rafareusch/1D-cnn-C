@@ -19,13 +19,16 @@ This branch aims to generate an quantized model using LUT tables and various tec
 ## Compile and Running Instructions
 ./compile
 ./model
-
-##### Note: Compile bash contains a supress all warnings command to prevent long compile times due the weights #include
-
+###### Some branches have different compiling instructions.
+###### Note: Compile bash contains a supress all warnings command to prevent long compile times due the weights #include
 
 
 ## Aditional Scripts
 
 ### convertTensor.py
 This script converts the pytorch extracted tensor and generates an array file to be included in C
-##### Note: If error is found due to wrong character detecter, check if the end of the tensor contains an cuda configuration, if YES, remove it. (Remove the object, including the ",")
+###### Note: If error is found due to wrong character detected, check if the end of the tensor contains an cuda configuration, if YES, remove it. (Remove the object, including the ",")
+
+### quantizate.py 
+This scripts converts .h weight/bias files generated using convertTensor into two files indices and lut files, number of bins and quantization mode is chosen on launch
+###### Note: The script DO NOT support scientific notation numbers (e.g. -1.5105e01) ALL values must be without any kind of notation, just numbers.
