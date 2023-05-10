@@ -1,4 +1,4 @@
-extern const float conv6_bias[64] = { \
+extern const float in_1[64] = { \
 -0.049300, \ 
 -0.003600, \ 
 0.095400, \ 

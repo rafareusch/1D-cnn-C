@@ -1,4 +1,4 @@
-extern const float conv3_weights[20480] = { \
+extern const float in_1[20480] = { \
 -0.024980, \ 
 -0.032569, \ 
 0.051137, \ 

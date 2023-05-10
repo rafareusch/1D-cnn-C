@@ -24,31 +24,32 @@
 #include "params/classifier_2_bias_indices.h"
 
 
-// #include "params/0_bias.h"
-// #include "params/3_bias.h"
-// #include "params/6_bias.h"
-// #include "params/0_weight.h"
-// #include "params/3_weight.h"
-// #include "params/6_weight.h"
-// #include "params/classifier_1_weight.h"
-// #include "params/classifier_2_weight.h"
-// #include "params/classifier_1_bias.h"
-// #include "params/classifier_2_bias.h"
+#include "params/0_bias.h"
+#include "params/3_bias.h"
+#include "params/6_bias.h"
+#include "params/0_weight.h"
+#include "params/3_weight.h"
+#include "params/6_weight.h"
+#include "params/classifier_1_weight.h"
+#include "params/classifier_2_weight.h"
+#include "params/classifier_1_bias.h"
+#include "params/classifier_2_bias.h"
 
 #include "params/dataset120_eval.h" // 3923 
 #define DATASET_UNITS 3923
 
 
-#define INPUT_SIZE 120
+#define INPUT_SIZE 40 //120
 #define NUM_FILTERS 64
 #define KERNEL_SIZE 5
-#define CONV0_INPUT_SIZE 120 
-#define CONV3_INPUT_SIZE 116
-#define CONV6_INPUT_SIZE 112 
-#define FC1_OUTPUT_SIZE 128
+#define CONV0_INPUT_SIZE 40  // 120 
+#define CONV3_INPUT_SIZE 36 // 116
+#define CONV6_INPUT_SIZE 32 // 112 
+#define FC1_OUTPUT_SIZE  128
 #define FC2_OUTPUT_SIZE 5
 
 
+#define QUANTIZATION 1  /// 1 = ON    0 = OFF
 
 
 
@@ -105,7 +106,7 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
     progress = (datasetIndex/DATASET_UNITS)*100;
 
 
-    int startingIndex = datasetIndex * 121; //input + label
+    int startingIndex = datasetIndex * (INPUT_SIZE + 1); //input + label
     targetLabel = dataset120[startingIndex + INPUT_SIZE];
 
     for(i = 0 ; i < INPUT_SIZE ; i++){
@@ -124,14 +125,20 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         // Load Current Weights
         for (i = 0; i < KERNEL_SIZE; i++)
         {
-            // conv0_currentKernel[i] =   conv0_weights[i + (k * KERNEL_SIZE)];
-            conv0_currentKernel[i] =   conv0_weights_lut[conv0_weights_indices[i + (k * KERNEL_SIZE)]];
+            if ( QUANTIZATION == 1 ){
+                conv0_currentKernel[i] =   conv0_weights_lut[conv0_weights_indices[i + (k * KERNEL_SIZE)]];
+            } else {
+                conv0_currentKernel[i] =   conv0_weights[i + (k * KERNEL_SIZE)];
+            }
             // printf("%f   %f (%d)  \n",conv0_weights[i + (k * KERNEL_SIZE)], conv0_weights_lut[ conv0_weights_indices[i + (k * KERNEL_SIZE)] ],conv0_weights_indices[i + (k * KERNEL_SIZE)] );
         }
 
         // Load Current Bias
-        // conv0_current_bias = conv0_bias[k];
-        conv0_current_bias = conv0_bias_lut[conv0_bias_indices[k]];
+        if ( QUANTIZATION == 1 ){
+            conv0_current_bias = conv0_bias_lut[conv0_bias_indices[k]];
+        } else {
+            conv0_current_bias = conv0_bias[k];
+        }
         // printf("%f   %f (%d)    Err:%f \n",conv0_bias[k], conv0_bias_lut[conv0_bias_indices[k]],conv0_bias_indices[k], conv0_bias[k]-conv0_bias_lut[conv0_bias_indices[k]] );
         
 
@@ -176,14 +183,22 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
                 for (int kernelIndex = 0 ; kernelIndex < KERNEL_SIZE ; kernelIndex++){
                     int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
                     int indexIn = kernelIndex + (inputOffset);
-                    // conv3_totalSum += conv0_featureMap[filterIn][indexIn] * conv3_weights[weightIndex]; 
-                    conv3_totalSum += conv0_featureMap[filterIn][indexIn] * conv3_weights_lut[conv3_weights_indices[weightIndex]];
+
+                    if ( QUANTIZATION == 1) {
+                         conv3_totalSum += conv0_featureMap[filterIn][indexIn] * conv3_weights_lut[conv3_weights_indices[weightIndex]];
+                    } else {
+                        conv3_totalSum += conv0_featureMap[filterIn][indexIn] * conv3_weights[weightIndex]; 
+                    }
                     // printf("%f   %f (%d)    Err:%f \n", conv3_weights[weightIndex] , conv3_weights_lut[conv3_weights_indices[weightIndex]], conv3_weights_indices[weightIndex], conv3_weights[weightIndex] - conv3_weights_lut[conv3_weights_indices[weightIndex]] );
                     // printf("%f   %f (%d)    Err:%f \n", aaa , bbbb, ccccc, aaa - bbb );
                 }
             }
-            // conv3_totalSum += conv3_bias[filterToGenerate];
-            conv3_totalSum += conv3_bias_lut[conv3_bias_indices[filterToGenerate]];
+
+            if ( QUANTIZATION == 1) {
+                conv3_totalSum += conv3_bias_lut[conv3_bias_indices[filterToGenerate]];
+            } else {
+                conv3_totalSum += conv3_bias[filterToGenerate];
+            }            
             // printf("%f   %f (%d)    Err:%f \n", conv3_bias[filterToGenerate] , conv3_bias_lut[conv3_bias_indices[filterToGenerate]], conv3_bias_indices[filterToGenerate], conv3_bias[filterToGenerate] - conv3_bias_lut[conv3_bias_indices[filterToGenerate]] );
             conv3_featureMap[filterToGenerate][inputOffset] = conv3_totalSum;
         }
@@ -217,13 +232,20 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
                 for (int kernelIndex = 0 ; kernelIndex < KERNEL_SIZE ; kernelIndex++){
                     int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
                     int indexIn = kernelIndex + (inputOffset);
-                    // totalSum += conv3_featureMap[filterIn][indexIn] * conv6_weights[weightIndex]; 
-                    totalSum += conv3_featureMap[filterIn][indexIn] * conv6_weights_lut[conv6_weights_indices[weightIndex]]; 
+
+                    if ( QUANTIZATION == 1) {
+                        totalSum += conv3_featureMap[filterIn][indexIn] * conv6_weights_lut[conv6_weights_indices[weightIndex]]; 
+                    } else {
+                        totalSum += conv3_featureMap[filterIn][indexIn] * conv6_weights[weightIndex]; 
+                    }                   
                     // printf("%f   %f (%d)    Err:%f \n", conv6_weights[weightIndex] , conv6_weights_lut[conv6_weights_indices[weightIndex]], conv6_weights_indices[weightIndex], conv6_weights[weightIndex] - conv6_weights_lut[conv6_weights_indices[weightIndex]] );
                 }
             }
-            // totalSum += conv6_bias[filterToGenerate];
-            totalSum += conv6_bias_lut[conv6_bias_indices[filterToGenerate]];
+            if ( QUANTIZATION == 1) {
+                totalSum += conv6_bias_lut[conv6_bias_indices[filterToGenerate]];
+            } else {
+                totalSum += conv6_bias[filterToGenerate];
+            }     
             // printf("%f   %f (%d)    Err:%f \n", conv6_bias[filterToGenerate] , conv6_bias_lut[conv6_bias_indices[filterToGenerate]], conv6_bias_indices[filterToGenerate], conv6_bias[filterToGenerate] - conv6_bias_lut[conv6_bias_indices[filterToGenerate]] );
             // printf("%f   %f (%d)    Err:%f \n", aaa , bbbb, ccccc, aaa - bbb );
             conv6_featureMap[filterToGenerate][inputOffset] = totalSum;
@@ -240,10 +262,6 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
                 conv6_featureMap[i][j] = 0;            
         }
     }
-
-
-
-
 
 
 
@@ -274,13 +292,20 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         totalValue = 0;
         for (int i = 0; i < fc1_inputSize; i++)
         {
-            //totalValue += flatten1_vector[i] * fc1_weights[(fc1_inputSize*outputIndex)+i];
-            totalValue += flatten1_vector[i] * fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]];
+            if(QUANTIZATION == 1){
+                totalValue += flatten1_vector[i] * fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]];
+            }else{
+                totalValue += flatten1_vector[i] * fc1_weights[(fc1_inputSize*outputIndex)+i];
+            }
             //printf("%f   %f (%d)    Err:%f \n", fc1_weights[(fc1_inputSize*outputIndex)+i] , fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]], fc1_weights_indices[(fc1_inputSize*outputIndex)+i], fc1_weights[(fc1_inputSize*outputIndex)+i] - fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]] );
             // printf("%f   %f (%d)    Err:%f \n", aaa , bbbb, ccccc, aaa - bbb );
         }
-        //fc1_out_vector[outputIndex] = totalValue + fc1_bias[outputIndex];
-        fc1_out_vector[outputIndex] = totalValue + fc1_bias_lut[fc1_bias_indices[outputIndex]];
+
+        if(QUANTIZATION == 1){
+            fc1_out_vector[outputIndex] = totalValue + fc1_bias_lut[fc1_bias_indices[outputIndex]];
+        }else{
+            fc1_out_vector[outputIndex] = totalValue + fc1_bias[outputIndex];
+        }
     }
 
 
@@ -300,13 +325,18 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         fc2_totalValue = 0;
         for (int i = 0; i < FC1_OUTPUT_SIZE; i++)
         {
-            //fc2_totalValue += fc1_out_vector[i] * fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i];
-            fc2_totalValue += fc1_out_vector[i] * fc2_weights_lut[fc2_weights_indices[(FC1_OUTPUT_SIZE*outputIndex)+i]];
+            if(QUANTIZATION == 1){
+                fc2_totalValue += fc1_out_vector[i] * fc2_weights_lut[fc2_weights_indices[(FC1_OUTPUT_SIZE*outputIndex)+i]];
+            }else{
+                fc2_totalValue += fc1_out_vector[i] * fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i];
+            }
         }
-        //fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias[outputIndex];
-        fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias_lut[fc2_bias_indices[outputIndex]];
+        if(QUANTIZATION == 1){
+            fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias_lut[fc2_bias_indices[outputIndex]];
+        }else{
+        fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias[outputIndex];
+        }
     }
-
 
     
 

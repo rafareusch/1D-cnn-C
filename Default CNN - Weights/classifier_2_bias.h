@@ -1,4 +1,4 @@
-extern const float fc2_bias[5] = { \
+extern const float in_1[5] = { \
 -0.040800, \ 
 0.057700, \ 
 0.385100, \ 

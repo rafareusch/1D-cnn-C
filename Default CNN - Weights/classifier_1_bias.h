@@ -1,4 +1,4 @@
-extern const float fc1_bias[128] = { \
+extern const float in_1[128] = { \
 0.039178, \ 
 0.002703, \ 
 -0.039153, \ 

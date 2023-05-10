@@ -1,4 +1,4 @@
-extern const float fc2_weights[640] = { \
+extern const float in_1[640] = { \
 0.214800, \ 
 0.114500, \ 
 0.349500, \ 
