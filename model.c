@@ -16,7 +16,7 @@
 #include "params/dataset120_eval.h" // 3923 
 #define DATASET_UNITS 3923
 
-
+#define BATCH_SIZE 32 
 #define INPUT_SIZE 120
 #define NUM_FILTERS 64
 #define KERNEL_SIZE 5
@@ -28,24 +28,11 @@
 
 
 
+void print_confusion_matrix(int matrix[5][5]) {
+    int i = 0;
+    int j = 0;
+    int n = 5;
 
-
-void print_confusion_matrix(int *expected, int *predicted, int n) {
-    int matrix[n][n];
-    int i, j;
-    
-    // Inicializa a matriz de confusão com zeros
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < n; j++) {
-            matrix[i][j] = 0;
-        }
-    }
-    
-    // Preenche a matriz de confusão com os valores esperados e calculados
-    for (i = 0; i < DATASET_UNITS; i++) {
-        matrix[expected[i]][predicted[i]]++;
-    }
-    
     // Imprime a matriz de confusão
     printf("Confusion Matrix:\n");
     printf("   ");
@@ -71,244 +58,260 @@ main(){
     int targetLabel;
     int correctLabels = 0;
     int wrongLabels = 0;
+    int batchSizeAuxCount = 0;
+    int batchCurrentAdd[5][5];
+    int confusionMatrix[5][5];
+    memset(batchCurrentAdd, 0, sizeof(batchCurrentAdd));
     int predictedList[DATASET_UNITS];
     int expectedList[DATASET_UNITS];
     int listIndex = 0;
+    
     printf("Evaluating...\n");
 
-for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
+    for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
 
-    float progress = datasetIndex / (float)DATASET_UNITS;
-    printf("Progress %0.f\n",progress*100);
-    progress = (datasetIndex/DATASET_UNITS)*100;
-
-
-    int startingIndex = datasetIndex * 121; //input + label
-    targetLabel = dataset120[startingIndex + INPUT_SIZE];
-
-    for(i = 0 ; i < INPUT_SIZE ; i++){
-        input_vector[i] = dataset120[startingIndex + i];
-    }
+        float progress = datasetIndex / (float)DATASET_UNITS;
+        printf("Progress %0.f\n",progress*100);
+        progress = (datasetIndex/DATASET_UNITS)*100;
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// LAYER 1
-// CONVOLUTION 1
-    float conv0_currentKernel[KERNEL_SIZE];
-    float conv0_current_bias = 0;
-    float conv0_featureMap[NUM_FILTERS][CONV0_INPUT_SIZE-4];
+        int startingIndex = datasetIndex * 121; //input + label
+        targetLabel = dataset120[startingIndex + INPUT_SIZE];
 
-    for (int k = 0; k < NUM_FILTERS; k++)
-    {
-        // Load Current Weights
-        for (i = 0; i < KERNEL_SIZE; i++)
-        {
-            conv0_currentKernel[i] = conv0_weights[i + (k * KERNEL_SIZE)];
+        for(i = 0 ; i < INPUT_SIZE ; i++){
+            input_vector[i] = dataset120[startingIndex + i];
         }
 
-        // Load Current Bias
-        conv0_current_bias = conv0_bias[k];
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// LAYER 1
+    // CONVOLUTION 1
+        float conv0_currentKernel[KERNEL_SIZE];
+        float conv0_current_bias = 0;
+        float conv0_featureMap[NUM_FILTERS][CONV0_INPUT_SIZE-4];
+
+        for (int k = 0; k < NUM_FILTERS; k++)
+        {
+            // Load Current Weights
+            for (i = 0; i < KERNEL_SIZE; i++)
+            {
+                conv0_currentKernel[i] = conv0_weights[i + (k * KERNEL_SIZE)];
+            }
+
+            // Load Current Bias
+            conv0_current_bias = conv0_bias[k];
+            
+
+
+            // Perform Kernel operation
+            for (i = 0; i <= sizeof(input_vector)/sizeof(input_vector[0])-KERNEL_SIZE; i++)
+            {
+                float totalSum = 0;
+                for (int j = 0; j < KERNEL_SIZE; j++)
+                {
+                totalSum += input_vector[i+j] * conv0_currentKernel[j];
+                }
+
+                conv0_featureMap[k][i] = totalSum + conv0_current_bias;
+            }
+        }
+    ///// RELU
+
+    ///// RELU
+        for (int i = 0; i < NUM_FILTERS; i++)
+        {
+            for (int j = 0; j < CONV0_INPUT_SIZE-4; j++)
+            {
+                
+                if (conv0_featureMap[i][j] <= 0)
+                    conv0_featureMap[i][j] = 0;    
+            }
+        }
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// LAYER 3
+    // CONVOLUTION 3
+        float conv3_featureMap[NUM_FILTERS][CONV3_INPUT_SIZE-4]; // 112
+
+
+
+        float conv3_totalSum = 0;
+        for (int filterToGenerate = 0 ; filterToGenerate < NUM_FILTERS ; filterToGenerate ++ ){
+            for (int inputOffset = 0 ; inputOffset < CONV3_INPUT_SIZE-4 ; inputOffset++){
+                conv3_totalSum = 0;
+                for (int filterIn = 0 ; filterIn < NUM_FILTERS ; filterIn++){
+                    for (int kernelIndex = 0 ; kernelIndex < KERNEL_SIZE ; kernelIndex++){
+                        int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
+                        int indexIn = kernelIndex + (inputOffset);
+                        conv3_totalSum += conv0_featureMap[filterIn][indexIn] * conv3_weights[weightIndex]; 
+
+                    }
+                }
+                conv3_totalSum += conv3_bias[filterToGenerate];
+                conv3_featureMap[filterToGenerate][inputOffset] = conv3_totalSum;
+            }
+        }
+        
         
 
-
-        // Perform Kernel operation
-        for (i = 0; i <= sizeof(input_vector)/sizeof(input_vector[0])-KERNEL_SIZE; i++)
+        
+    ///// RELU
+        for (int i = 0; i < NUM_FILTERS; i++)
         {
-            float totalSum = 0;
-            for (int j = 0; j < KERNEL_SIZE; j++)
+            for (int j = 0; j < CONV3_INPUT_SIZE-4; j++)
             {
-               totalSum += input_vector[i+j] * conv0_currentKernel[j];
+                if (conv3_featureMap[i][j] <= 0)
+                    conv3_featureMap[i][j] = 0;        
             }
-
-            conv0_featureMap[k][i] = totalSum + conv0_current_bias;
         }
-    }
-///// RELU
-
-///// RELU
-    for (int i = 0; i < NUM_FILTERS; i++)
-    {
-        for (int j = 0; j < CONV0_INPUT_SIZE-4; j++)
-        {
-            
-            if (conv0_featureMap[i][j] <= 0)
-                conv0_featureMap[i][j] = 0;    
-        }
-    }
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// LAYER 3
-// CONVOLUTION 3
-    float conv3_featureMap[NUM_FILTERS][CONV3_INPUT_SIZE-4]; // 112
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// LAYER 6
+    // CONVOLUTION 6
+
+        float conv6_featureMap[NUM_FILTERS][CONV6_INPUT_SIZE-4]; 
 
 
-
-    float conv3_totalSum = 0;
-    for (int filterToGenerate = 0 ; filterToGenerate < NUM_FILTERS ; filterToGenerate ++ ){
-        for (int inputOffset = 0 ; inputOffset < CONV3_INPUT_SIZE-4 ; inputOffset++){
-            conv3_totalSum = 0;
-            for (int filterIn = 0 ; filterIn < NUM_FILTERS ; filterIn++){
-                for (int kernelIndex = 0 ; kernelIndex < KERNEL_SIZE ; kernelIndex++){
-                    int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
-                    int indexIn = kernelIndex + (inputOffset);
-                    conv3_totalSum += conv0_featureMap[filterIn][indexIn] * conv3_weights[weightIndex]; 
-
+        float totalSum = 0;
+        for (int filterToGenerate = 0 ; filterToGenerate < NUM_FILTERS ; filterToGenerate ++ ){
+            for (int inputOffset = 0 ; inputOffset < CONV6_INPUT_SIZE-4 ; inputOffset++){
+                totalSum = 0;
+                for (int filterIn = 0 ; filterIn < NUM_FILTERS ; filterIn++){
+                    for (int kernelIndex = 0 ; kernelIndex < KERNEL_SIZE ; kernelIndex++){
+                        int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
+                        int indexIn = kernelIndex + (inputOffset);
+                        totalSum += conv3_featureMap[filterIn][indexIn] * conv6_weights[weightIndex]; 
+                    }
                 }
+                totalSum += conv6_bias[filterToGenerate];
+                conv6_featureMap[filterToGenerate][inputOffset] = totalSum;
             }
-            conv3_totalSum += conv3_bias[filterToGenerate];
-            conv3_featureMap[filterToGenerate][inputOffset] = conv3_totalSum;
         }
-    }
-    
-    
-
-    
-///// RELU
-    for (int i = 0; i < NUM_FILTERS; i++)
-    {
-        for (int j = 0; j < CONV3_INPUT_SIZE-4; j++)
+        
+        
+    /////////////////////////// RELU
+        for (int i = 0; i < NUM_FILTERS; i++)
         {
-            if (conv3_featureMap[i][j] <= 0)
-                conv3_featureMap[i][j] = 0;        
-        }
-    }
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// LAYER 6
-// CONVOLUTION 6
-
-    float conv6_featureMap[NUM_FILTERS][CONV6_INPUT_SIZE-4]; 
-
-
-    float totalSum = 0;
-    for (int filterToGenerate = 0 ; filterToGenerate < NUM_FILTERS ; filterToGenerate ++ ){
-        for (int inputOffset = 0 ; inputOffset < CONV6_INPUT_SIZE-4 ; inputOffset++){
-            totalSum = 0;
-            for (int filterIn = 0 ; filterIn < NUM_FILTERS ; filterIn++){
-                for (int kernelIndex = 0 ; kernelIndex < KERNEL_SIZE ; kernelIndex++){
-                    int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
-                    int indexIn = kernelIndex + (inputOffset);
-                    totalSum += conv3_featureMap[filterIn][indexIn] * conv6_weights[weightIndex]; 
-                }
+            for (int j = 0; j < CONV6_INPUT_SIZE-4; j++)
+            {
+                if (conv6_featureMap[i][j] <= 0)
+                    conv6_featureMap[i][j] = 0;            
             }
-            totalSum += conv6_bias[filterToGenerate];
-            conv6_featureMap[filterToGenerate][inputOffset] = totalSum;
         }
-    }
-    
-    
-/////////////////////////// RELU
-    for (int i = 0; i < NUM_FILTERS; i++)
-    {
-        for (int j = 0; j < CONV6_INPUT_SIZE-4; j++)
+
+
+
+
+
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// LAYER 2
+    ////////////////////////////////////////// FC Layer
+    ///// Flatten
+
+        float flatten1_vector[NUM_FILTERS*(CONV6_INPUT_SIZE-4)];
+        int index = 0;
+
+        for (int k = 0; k < NUM_FILTERS; k++)
         {
-            if (conv6_featureMap[i][j] <= 0)
-                conv6_featureMap[i][j] = 0;            
+            for (int i = 0; i < CONV6_INPUT_SIZE-4; i++)
+            {
+                flatten1_vector[index] =  conv6_featureMap[k][i];
+                index++;
+            }
         }
-    }
+        
+    /////// FC 1 (6192 > 128)
+
+        float fc1_out_vector[FC1_OUTPUT_SIZE];
+        float totalValue;
+        int fc1_inputSize = NUM_FILTERS*(CONV6_INPUT_SIZE-4); // 6912
 
 
-
-
-
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// LAYER 2
-////////////////////////////////////////// FC Layer
-///// Flatten
-
-    float flatten1_vector[NUM_FILTERS*(CONV6_INPUT_SIZE-4)];
-    int index = 0;
-
-    for (int k = 0; k < NUM_FILTERS; k++)
-    {
-        for (int i = 0; i < CONV6_INPUT_SIZE-4; i++)
-        {
-            flatten1_vector[index] =  conv6_featureMap[k][i];
-            index++;
+        for (int outputIndex = 0; outputIndex < FC1_OUTPUT_SIZE; outputIndex++){
+            totalValue = 0;
+            for (int i = 0; i < fc1_inputSize; i++)
+            {
+                totalValue += flatten1_vector[i] * fc1_weights[(fc1_inputSize*outputIndex)+i];
+            }
+            fc1_out_vector[outputIndex] = totalValue + fc1_bias[outputIndex];
         }
-    }
-    
-/////// FC 1 (6192 > 128)
-
-    float fc1_out_vector[FC1_OUTPUT_SIZE];
-    float totalValue;
-    int fc1_inputSize = NUM_FILTERS*(CONV6_INPUT_SIZE-4); // 6912
 
 
-    for (int outputIndex = 0; outputIndex < FC1_OUTPUT_SIZE; outputIndex++){
-        totalValue = 0;
-        for (int i = 0; i < fc1_inputSize; i++)
-        {
-            totalValue += flatten1_vector[i] * fc1_weights[(fc1_inputSize*outputIndex)+i];
+        
+    ////////////////// RELU
+        for (int i = 0; i < FC1_OUTPUT_SIZE ; i++){
+            if ( fc1_out_vector[i] < 0) fc1_out_vector[i] = 0;        
         }
-        fc1_out_vector[outputIndex] = totalValue + fc1_bias[outputIndex];
-    }
-
-
-    
-////////////////// RELU
-    for (int i = 0; i < FC1_OUTPUT_SIZE ; i++){
-        if ( fc1_out_vector[i] < 0) fc1_out_vector[i] = 0;        
-    }
 
 
 
-///////////////// FC 1 (128 > 5)
-    float fc2_out_vector[FC2_OUTPUT_SIZE];
-    float fc2_totalValue;
-     
-    for (int outputIndex = 0; outputIndex < FC2_OUTPUT_SIZE; outputIndex++){
-        fc2_totalValue = 0;
-        for (int i = 0; i < FC1_OUTPUT_SIZE; i++)
-        {
-            fc2_totalValue += fc1_out_vector[i] * fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i];
+    ///////////////// FC 1 (128 > 5)
+        float fc2_out_vector[FC2_OUTPUT_SIZE];
+        float fc2_totalValue;
+        
+        for (int outputIndex = 0; outputIndex < FC2_OUTPUT_SIZE; outputIndex++){
+            fc2_totalValue = 0;
+            for (int i = 0; i < FC1_OUTPUT_SIZE; i++)
+            {
+                fc2_totalValue += fc1_out_vector[i] * fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i];
+            }
+            fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias[outputIndex];
         }
-        fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias[outputIndex];
-    }
 
 
+        
+
+    ////////////////////////// Result Classes
+        //printf("\n############################################################## RESULT CLASSES");
+
+
+        float maxValue = fc2_out_vector[0];
+        int calculatedLabel = 0;
     
 
-////////////////////////// Result Classes
-    //printf("\n############################################################## RESULT CLASSES");
+        for (int i = 0; i < 5; i++){
+            if (fc2_out_vector[i] > maxValue){
+                maxValue = fc2_out_vector[i];
+                calculatedLabel = i;
+            }
+        }
+
+        if ( targetLabel == calculatedLabel){
+            printf("Correct prediction (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
+            if (batchCurrentAdd[targetLabel][calculatedLabel] == 0){
+                correctLabels++;
+                confusionMatrix[targetLabel][calculatedLabel]++;
+                batchCurrentAdd[targetLabel][calculatedLabel] = 1;
+            }
+        } else {
+            printf("Wrong prediction  (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
+            if (batchCurrentAdd[targetLabel][calculatedLabel] == 0){
+                wrongLabels++;
+                confusionMatrix[targetLabel][calculatedLabel]++;
+                batchCurrentAdd[targetLabel][calculatedLabel] = 1;
+            }
+        }
+        predictedList[listIndex] = calculatedLabel;
+        expectedList[listIndex] = targetLabel;
+        listIndex++;
 
 
-    float maxValue = fc2_out_vector[0];
-    int calculatedLabel = 0;
- 
-
-    for (int i = 0; i < 5; i++){
-        if (fc2_out_vector[i] > maxValue){
-             maxValue = fc2_out_vector[i];
-             calculatedLabel = i;
+        /// Update batch size parameters
+        if (batchSizeAuxCount == BATCH_SIZE-1){
+            memset(batchCurrentAdd, 0, sizeof(batchCurrentAdd));
+            batchSizeAuxCount = 0;
+        } else {
+            batchSizeAuxCount += 1;
         }
     }
-
-    if ( targetLabel == calculatedLabel){
-        printf("Correct prediction (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
-        correctLabels++;
-    } else {
-        printf("Wrong prediction  (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
-        wrongLabels++;
-    }
-
-    predictedList[listIndex] = calculatedLabel;
-    expectedList[listIndex] = targetLabel;
-    listIndex++;
-
-
-}
     printf("----------------------\n");
-    printf("Accuracy: %0.1f\n",(float)correctLabels/(float)DATASET_UNITS*100);
+    printf("Accuracy: %0.1f\n",(float)correctLabels/((float)correctLabels + (float)wrongLabels)*100);
     printf("----------\n");
     printf("Correct predictions: %d \n",correctLabels);
     printf("Wrong predictions: %d \n",wrongLabels);
     printf("----------------------\n");
     printf("Confusion Matrix\n");
-    print_confusion_matrix(&predictedList,&expectedList,5);
-
-
-
+    print_confusion_matrix(confusionMatrix);
     printf(" \n------------------------------------------------------------- End..");
     return 0;
 }
