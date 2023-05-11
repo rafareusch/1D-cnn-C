@@ -16,6 +16,7 @@
 
 //// Main defines
 #include "params/dataset120_eval.h" // 3923 
+#define BATCH_SIZE 32
 #define DATASET_UNITS 3923
 #define INPUT_SIZE 120
 #define NUM_FILTERS 64
@@ -39,22 +40,11 @@
 
 
 
-void print_confusion_matrix(int *expected, int *predicted, int n) {
-    int matrix[n][n];
-    int i, j;
-    
-    // Inicializa a matriz de confusão com zeros
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < n; j++) {
-            matrix[i][j] = 0;
-        }
-    }
-    
-    // Preenche a matriz de confusão com os valores esperados e calculados
-    for (i = 0; i < DATASET_UNITS; i++) {
-        matrix[expected[i]][predicted[i]]++;
-    }
-    
+void print_confusion_matrix(int matrix[5][5]) {
+    int i = 0;
+    int j = 0;
+    int n = 5;
+
     // Imprime a matriz de confusão
     printf("Confusion Matrix:\n");
     printf("   ");
@@ -75,6 +65,7 @@ void print_confusion_matrix(int *expected, int *predicted, int n) {
 
 
 
+
 main(){
     printf("Boot... ");
     int i = 0;
@@ -82,6 +73,11 @@ main(){
     int targetLabel;
     int correctLabels = 0;
     int wrongLabels = 0;
+    int batchSizeAuxCount = 0;
+    int batchCurrentAdd[5][5];
+    int confusionMatrix[5][5];
+    memset(batchCurrentAdd, 0, sizeof(batchCurrentAdd));
+    memset(confusionMatrix, 0, sizeof(confusionMatrix));
     int predictedList[DATASET_UNITS];
     int expectedList[DATASET_UNITS];
     int listIndex = 0;
@@ -377,7 +373,6 @@ main(){
                 if(CALCULATE_FLOAT == 1)fc2_totalValue += fc1_out_vector[i] * fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i];
                 INTfc2_totalValue += ((INTfc1_out_vector[i] * MULTIP_fc2 ) / MULTIP_fc1) * ( (int) (fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i]*(MULTIP_fc2))); 
                 // if ( datasetIndex == 4) printf("%f  %d \n ",fc2_totalValue,INTfc2_totalValue);
-
             }
             if(CALCULATE_FLOAT == 1)fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias[outputIndex];
             INTfc2_out_vector[outputIndex] = INTfc2_totalValue + ( (int) fc2_bias[outputIndex] * MULTIP_fc2 );
@@ -390,11 +385,6 @@ main(){
     // divide the feature map items by MULTIP_fc2
         for (int i = 0; i < FC2_OUTPUT_SIZE; i++)
         {   
-            // if ( datasetIndex == 4){ 
-            // printf("fc2---------------\n");
-            // printf("%2.8f %2.8f\n",fc2_out_vector[i], ((float) (INTfc2_out_vector[i]))/(MULTIP_fc2*MULTIP_fc2) );
-            // printf("%2.8f %2.8f\n",fc2_out_vector[i], ((float) (INTfc2_out_vector[i]))/(MULTIP_fc2) );
-            //}
             INTfc2_out_vector[i] = INTfc2_out_vector[i] / (MULTIP_fc2*MULTIP_fc2);
             
         }
@@ -417,26 +407,42 @@ main(){
 
         if ( targetLabel == calculatedLabel){
             printf("Correct prediction (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
-            correctLabels++;
+            if (batchCurrentAdd[targetLabel][calculatedLabel] == 0){
+                correctLabels++;
+                confusionMatrix[targetLabel][calculatedLabel]++;
+                batchCurrentAdd[targetLabel][calculatedLabel] = 1;
+            }
         } else {
             printf("Wrong prediction  (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
-            wrongLabels++;
+            if (batchCurrentAdd[targetLabel][calculatedLabel] == 0){
+                wrongLabels++;
+                confusionMatrix[targetLabel][calculatedLabel]++;
+                batchCurrentAdd[targetLabel][calculatedLabel] = 1;
+            }
         }
         predictedList[listIndex] = calculatedLabel;
         expectedList[listIndex] = targetLabel;
         listIndex++;
 
+
+        /// Update batch size parameters
+        if (batchSizeAuxCount == BATCH_SIZE-1){
+            memset(batchCurrentAdd, 0, sizeof(batchCurrentAdd));
+            batchSizeAuxCount = 0;
+        } else {
+            batchSizeAuxCount += 1;
+        }
     }
-    /// RESULTS
+
+
     printf("----------------------\n");
-    printf("Accuracy: %0.1f\n",((float)correctLabels/(float)DATASET_UNITS)*100);
+    printf("Accuracy: %0.1f\n",(float)correctLabels/((float)correctLabels + (float)wrongLabels)*100);
     printf("----------\n");
     printf("Correct predictions: %d \n",correctLabels);
     printf("Wrong predictions: %d \n",wrongLabels);
     printf("----------------------\n");
-    print_confusion_matrix(&predictedList,&expectedList,5);
-    
-
+    printf("Confusion Matrix\n");
+    print_confusion_matrix(confusionMatrix);
     printf(" \n------------------------------------------------------------- End..");
     return 0;
 }
