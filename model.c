@@ -38,7 +38,7 @@
 #include "params/dataset120_eval.h" // 3923 
 #define DATASET_UNITS 3923
 
-
+#define BATCH_SIZE 32
 #define INPUT_SIZE 40 //120
 #define NUM_FILTERS 64
 #define KERNEL_SIZE 5
@@ -49,26 +49,15 @@
 #define FC2_OUTPUT_SIZE 5
 
 
-#define QUANTIZATION 1  /// 1 = ON    0 = OFF
+#define QUANTIZATION 0  /// 1 = ON    0 = OFF
 
 
 
-void print_confusion_matrix(int *expected, int *predicted, int n) {
-    int matrix[n][n];
-    int i, j;
-    
-    // Inicializa a matriz de confusão com zeros
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < n; j++) {
-            matrix[i][j] = 0;
-        }
-    }
-    
-    // Preenche a matriz de confusão com os valores esperados e calculados
-    for (i = 0; i < DATASET_UNITS; i++) {
-        matrix[expected[i]][predicted[i]]++;
-    }
-    
+void print_confusion_matrix(int matrix[5][5]) {
+    int i = 0;
+    int j = 0;
+    int n = 5;
+
     // Imprime a matriz de confusão
     printf("Confusion Matrix:\n");
     printf("   ");
@@ -94,6 +83,11 @@ main(){
     int targetLabel;
     int correctLabels = 0;
     int wrongLabels = 0;
+    int batchSizeAuxCount = 0;
+    int batchCurrentAdd[5][5];
+    int confusionMatrix[5][5];
+    memset(batchCurrentAdd, 0, sizeof(batchCurrentAdd));
+    memset(confusionMatrix, 0, sizeof(confusionMatrix));
     int predictedList[DATASET_UNITS];
     int expectedList[DATASET_UNITS];
     int listIndex = 0;
@@ -357,32 +351,46 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
 
     if ( targetLabel == calculatedLabel){
         printf("Correct prediction (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
-        correctLabels++;
+        if (batchCurrentAdd[targetLabel][calculatedLabel] == 0){
+            correctLabels++;
+            confusionMatrix[targetLabel][calculatedLabel] += 1;
+            batchCurrentAdd[targetLabel][calculatedLabel] = 1;
+        }
     } else {
         printf("Wrong prediction  (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
-        wrongLabels++;
+        if (batchCurrentAdd[targetLabel][calculatedLabel] == 0){
+            wrongLabels++;
+            confusionMatrix[targetLabel][calculatedLabel] += 1;
+            batchCurrentAdd[targetLabel][calculatedLabel] = 1;
+        }
     }
-
     predictedList[listIndex] = calculatedLabel;
     expectedList[listIndex] = targetLabel;
     listIndex++;
+    /// Update batch size parameters
 
-
+    if (batchSizeAuxCount == BATCH_SIZE-1){
+        memset(batchCurrentAdd, 0, sizeof(batchCurrentAdd));
+        batchSizeAuxCount = 0;
+    } else {
+        batchSizeAuxCount += 1;
+    }
 }
+
+
     printf("----------------------\n");
-    printf("Accuracy: %0.1f\n",(float)correctLabels/(float)DATASET_UNITS*100);
+    printf("Accuracy: %0.1f\n",(float)correctLabels/((float)correctLabels + (float)wrongLabels)*100);
     printf("----------\n");
     printf("Correct predictions: %d \n",correctLabels);
     printf("Wrong predictions: %d \n",wrongLabels);
     printf("----------------------\n");
     printf("Confusion Matrix\n");
-    print_confusion_matrix(&predictedList,&expectedList,5);
+    print_confusion_matrix(confusionMatrix);
 
 
 
     printf(" \n------------------------------------------------------------- End..");
     return 0;
 }
-
 
 
