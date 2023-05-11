@@ -39,6 +39,7 @@
 #define DATASET_UNITS 3923
 
 
+#define BATCH_SIZE 32
 #define INPUT_SIZE 120
 #define NUM_FILTERS 64
 #define KERNEL_SIZE 5
