@@ -2,6 +2,27 @@
 #include <stdlib.h>
 #include <math.h>
 
+
+#include "params/0_bias_lut.h"
+#include "params/0_bias_indices.h"
+#include "params/3_bias_lut.h"
+#include "params/3_bias_indices.h"
+#include "params/6_bias_lut.h"
+#include "params/6_bias_indices.h"
+#include "params/0_weight_lut.h"
+#include "params/0_weight_indices.h"
+#include "params/3_weight_lut.h"
+#include "params/3_weight_indices.h"
+#include "params/6_weight_lut.h"
+#include "params/6_weight_indices.h"
+#include "params/classifier_1_weight_lut.h"
+#include "params/classifier_1_weight_indices.h"
+#include "params/classifier_2_weight_lut.h"
+#include "params/classifier_2_weight_indices.h"
+#include "params/classifier_1_bias_lut.h"
+#include "params/classifier_1_bias_indices.h"
+#include "params/classifier_2_bias_lut.h"
+#include "params/classifier_2_bias_indices.h"
 #include "params/0_bias.h"
 #include "params/3_bias.h"
 #include "params/6_bias.h"
@@ -29,15 +50,8 @@
 
 
 // INT CNN defines
-#define MULTIP_conv1 10000
-#define MULTIP_conv3 10000
-#define MULTIP_conv6 10000
-#define MULTIP_fc1 10000
-#define MULTIP_fc2 1000
-#define CALCULATE_FLOAT 0  // 0 = No / 1 = Yes 
-
-
-
+#define INPUT_MULTIP 1000 // This value MUST be the same used in Quantization
+#define CALCULATE_FLOAT 0  // 1 = No Quantization     0 = Quantization
 
 
 void print_confusion_matrix(int matrix[5][5]) {
@@ -60,10 +74,6 @@ void print_confusion_matrix(int matrix[5][5]) {
         printf("\n");
     }
 }
-
-
-
-
 
 
 main(){
@@ -117,12 +127,12 @@ main(){
             for (i = 0; i < KERNEL_SIZE; i++)
             {
                 if(CALCULATE_FLOAT == 1)conv0_currentKernel[i] = conv0_weights[i + (k * KERNEL_SIZE)];
-                INTconv0_currentKernel[i] = (int) (MULTIP_conv1 * conv0_weights[i + (k * KERNEL_SIZE)]);
+                INTconv0_currentKernel[i] = (int) (conv0_weights_lut[conv0_weights_indices[i + (k * KERNEL_SIZE)]]);
             }
 
             // Load Current Bias
             if(CALCULATE_FLOAT == 1)conv0_current_bias = conv0_bias[k];
-            INTconv0_current_bias = (int) (MULTIP_conv1 * conv0_bias[k]);
+            INTconv0_current_bias = (int) (conv0_bias_lut[conv3_bias_indices[k]]);
 
 
             // Perform Kernel operation
@@ -134,7 +144,7 @@ main(){
                 for (int j = 0; j < KERNEL_SIZE; j++)
                 {
                 if(CALCULATE_FLOAT == 1)totalSum += input_vector[i+j] * conv0_currentKernel[j];
-                INTtotalSum += ((int)( (input_vector[i+j] + (float)(5/(float)MULTIP_conv1) ) * MULTIP_conv1)) * INTconv0_currentKernel[j];
+                INTtotalSum += ((int)( (input_vector[i+j] + (float)(5/(float)INPUT_MULTIP) ) * INPUT_MULTIP)) * INTconv0_currentKernel[j];
                 }
                 if(CALCULATE_FLOAT == 1)conv0_featureMap[k][i] = totalSum + conv0_current_bias;
                 INTconv0_featureMap[k][i] = INTtotalSum + INTconv0_current_bias;
@@ -143,15 +153,15 @@ main(){
 
         
     //////////////////////////////// INT HANDLER
-    // divide the feature map items by MULTIP_conv1
+    // divide the feature map items by INPUT_MULTIP
         for (int i = 0; i < NUM_FILTERS; i++)
         {
             for (int j = 0; j < CONV0_INPUT_SIZE-4; j++)
             {
-                // printf("---------------\n");
-                // printf("%2.8f %2.8f\n",conv0_featureMap[0][j], ((float) (INTconv0_featureMap[0][j]))/(MULTIP_conv1*MULTIP_conv1) ); // igual
-                // printf("%2.8f %2.8f\n",conv0_featureMap[0][j], ((float) (INTconv0_featureMap[0][j]))/(MULTIP_conv1) ); 
-                INTconv0_featureMap[i][j] = (INTconv0_featureMap[i][j])/(MULTIP_conv1);
+                // printf("%2.8f %2.8f\n",conv0_featureMap[0][j], ((float) (INTconv0_featureMap[0][j]))/(INPUT_MULTIP) ); 
+                INTconv0_featureMap[i][j] = (INTconv0_featureMap[i][j])/(INPUT_MULTIP);
+                // printf("---  FLOAT ------------------  INT ------\n");
+                // printf("%2.8f %2.8f\n",conv0_featureMap[0][j], ((float) (INTconv0_featureMap[0][j]))/(INPUT_MULTIP*INPUT_MULTIP) ); // igual
             }
         }
 
@@ -191,13 +201,13 @@ main(){
                         int indexIn = kernelIndex + (inputOffset);
 
                         if(CALCULATE_FLOAT == 1)conv3_totalSum += conv0_featureMap[filterIn][indexIn] * conv3_weights[weightIndex]; 
-                        INTconv3_totalSum += ((INTconv0_featureMap[filterIn][indexIn] * MULTIP_conv3) / MULTIP_conv1)    *  ((int) (conv3_weights[weightIndex] * MULTIP_conv3))  ; 
+                        INTconv3_totalSum += ((INTconv0_featureMap[filterIn][indexIn] * INPUT_MULTIP) / INPUT_MULTIP)    *  ((int) (conv3_weights_lut[conv3_weights_indices[weightIndex]]))  ; 
                     }
                 }
                 if(CALCULATE_FLOAT == 1)conv3_totalSum += conv3_bias[filterToGenerate];
                 if(CALCULATE_FLOAT == 1)conv3_featureMap[filterToGenerate][inputOffset] = conv3_totalSum;
 
-                INTconv3_totalSum += ( (int) conv3_bias[filterToGenerate] * MULTIP_conv3);
+                INTconv3_totalSum += ( (int) conv3_bias_lut[conv3_bias_indices[filterToGenerate]]);
                 INTconv3_featureMap[filterToGenerate][inputOffset] = INTconv3_totalSum;
             }
         }
@@ -205,15 +215,15 @@ main(){
         
 
     //////////////////////////////// INT HANDLER
-    // divide the feature map items by MULTIP_conv3
+    // divide the feature map items by INPUT_MULTIP
         for (int i = 0; i < NUM_FILTERS; i++)
         {
             for (int j = 0; j < CONV3_INPUT_SIZE-4; j++)
             {            
                 // printf("conv3---------------\n");
-                // printf("%2.8f %2.8f\n",conv3_featureMap[i][j], ((float) (INTconv3_featureMap[i][j]))/(MULTIP_conv3*MULTIP_conv3) );
-                // printf("%2.8f %2.8f\n",conv3_featureMap[i][j], ((float) (INTconv3_featureMap[i][j]))/(MULTIP_conv3) );
-                INTconv3_featureMap[i][j] = (INTconv3_featureMap[i][j])/(MULTIP_conv3);
+                // printf("%2.8f %2.8f\n",conv3_featureMap[i][j], ((float) (INTconv3_featureMap[i][j]))/(INPUT_MULTIP*INPUT_MULTIP) );
+                // printf("%2.8f %2.8f\n",conv3_featureMap[i][j], ((float) (INTconv3_featureMap[i][j]))/(INPUT_MULTIP) );
+                INTconv3_featureMap[i][j] = (INTconv3_featureMap[i][j])/(INPUT_MULTIP);
             }
         }
 
@@ -251,27 +261,27 @@ main(){
                         int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
                         int indexIn = kernelIndex + (inputOffset);
                         if(CALCULATE_FLOAT == 1)conv6_totalSum += conv3_featureMap[filterIn][indexIn] * conv6_weights[weightIndex]; 
-                        INTconv6_totalSum += ((INTconv3_featureMap[filterIn][indexIn] * MULTIP_conv6)/MULTIP_conv3) * ((int) (conv6_weights[weightIndex] * MULTIP_conv6));
+                        INTconv6_totalSum += ((INTconv3_featureMap[filterIn][indexIn] * INPUT_MULTIP)/INPUT_MULTIP) * ((int) (conv6_weights_lut[conv6_weights_indices[weightIndex]]));
                     }
                 }
                 if(CALCULATE_FLOAT == 1)conv6_totalSum += conv6_bias[filterToGenerate];
                 if(CALCULATE_FLOAT == 1)conv6_featureMap[filterToGenerate][inputOffset] = conv6_totalSum;
-                INTconv6_totalSum += ( (int) conv6_bias[filterToGenerate] * MULTIP_conv6);
+                INTconv6_totalSum += ( (int) conv6_bias_lut[conv6_bias_indices[filterToGenerate]]);
                 INTconv6_featureMap[filterToGenerate][inputOffset] = INTconv6_totalSum;
             }
         }
         
 
     //////////////////////////////// INT HANDLER
-    // divide the feature map items by MULTIP_conv6
+    // divide the feature map items by INPUT_MULTIP
         for (int i = 0; i < NUM_FILTERS; i++)
         {
             for (int j = 0; j < CONV6_INPUT_SIZE-4; j++)
             {            
                 // printf("conv6---------------\n");
-                // printf("%2.8f %2.8f\n",conv6_featureMap[i][j], ((float) (INTconv6_featureMap[i][j]))/(MULTIP_conv6*MULTIP_conv6) );  //Out 0.500  0.0000500
-                // printf("%2.8f %2.8f\n",conv6_featureMap[i][j], ((float) (INTconv6_featureMap[i][j]))/(MULTIP_conv6) );         //Out 0.500  0.500
-                INTconv6_featureMap[i][j] = (INTconv6_featureMap[i][j]/(MULTIP_conv6)); // 5000
+                // printf("%2.8f %2.8f\n",conv6_featureMap[i][j], ((float) (INTconv6_featureMap[i][j]))/(INPUT_MULTIP*INPUT_MULTIP) );  //Out 0.500  0.0000500
+                // printf("%2.8f %2.8f\n",conv6_featureMap[i][j], ((float) (INTconv6_featureMap[i][j]))/(INPUT_MULTIP) );         //Out 0.500  0.500
+                INTconv6_featureMap[i][j] = (INTconv6_featureMap[i][j]/(INPUT_MULTIP)); // 5000
             }
         }
 
@@ -330,21 +340,21 @@ main(){
             for (int i = 0; i < fc1_inputSize; i++)
             {
                 if(CALCULATE_FLOAT == 1)totalValue += flatten1_vector[i] * fc1_weights[(fc1_inputSize*outputIndex)+i];
-                INTtotalValue += ((INTflatten1_vector[i]*MULTIP_fc1)/MULTIP_conv6) * ( (int) (fc1_weights[(fc1_inputSize*outputIndex)+i] * MULTIP_fc1) );
+                INTtotalValue += ((INTflatten1_vector[i]*INPUT_MULTIP)/INPUT_MULTIP) * ( (int) (fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]]) );
             }
             if(CALCULATE_FLOAT == 1)fc1_out_vector[outputIndex] = totalValue + fc1_bias[outputIndex];
-            INTfc1_out_vector[outputIndex] = INTtotalValue + ((int) fc1_bias[outputIndex]*MULTIP_fc1);
+            INTfc1_out_vector[outputIndex] = INTtotalValue + ((int) fc1_bias_lut[fc1_bias_indices[outputIndex]]);
         }
 
 
     //////////////////////////////// INT HANDLER
-    // divide the feature map items by MULTIP_fc1
+    // divide the feature map items by INPUT_MULTIP
         for (int i = 0; i < FC1_OUTPUT_SIZE; i++)
         {         
             // printf("fc1---------------\n");
-            // printf("%2.8f %2.8f\n",fc1_out_vector[i], ((float) (INTfc1_out_vector[i]))/(MULTIP_fc1*MULTIP_fc1) );
-            // printf("%2.8f %2.8f\n",fc1_out_vector[i], ((float) (INTfc1_out_vector[i]))/(MULTIP_fc1) );
-            INTfc1_out_vector[i] = INTfc1_out_vector[i] / MULTIP_fc1;
+            // printf("%2.8f %2.8f\n",fc1_out_vector[i], ((float) (INTfc1_out_vector[i]))/(INPUT_MULTIP*INPUT_MULTIP) );
+            // printf("%2.8f %2.8f\n",fc1_out_vector[i], ((float) (INTfc1_out_vector[i]))/(INPUT_MULTIP) );
+            INTfc1_out_vector[i] = INTfc1_out_vector[i] / INPUT_MULTIP;
         }
 
 
@@ -371,21 +381,21 @@ main(){
             for (int i = 0; i < FC1_OUTPUT_SIZE; i++)
             {
                 if(CALCULATE_FLOAT == 1)fc2_totalValue += fc1_out_vector[i] * fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i];
-                INTfc2_totalValue += ((INTfc1_out_vector[i] * MULTIP_fc2 ) / MULTIP_fc1) * ( (int) (fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i]*(MULTIP_fc2))); 
+                INTfc2_totalValue += ((INTfc1_out_vector[i] * INPUT_MULTIP ) / INPUT_MULTIP) * ( (int) (fc2_weights_lut[fc2_weights_indices[(FC1_OUTPUT_SIZE*outputIndex)+i]])); 
                 // if ( datasetIndex == 4) printf("%f  %d \n ",fc2_totalValue,INTfc2_totalValue);
             }
             if(CALCULATE_FLOAT == 1)fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias[outputIndex];
-            INTfc2_out_vector[outputIndex] = INTfc2_totalValue + ( (int) fc2_bias[outputIndex] * MULTIP_fc2 );
+            INTfc2_out_vector[outputIndex] = INTfc2_totalValue + ( (int) fc2_bias_lut[fc2_bias_indices[outputIndex]] );
             // if ( datasetIndex == 4) printf("%f  %d \n ",fc2_out_vector[outputIndex],INTfc2_out_vector[outputIndex]);
         }
 
 
         
     //////////////////////////////// INT HANDLER
-    // divide the feature map items by MULTIP_fc2
+    // divide the feature map items by INPUT_MULTIP
         for (int i = 0; i < FC2_OUTPUT_SIZE; i++)
         {   
-            INTfc2_out_vector[i] = INTfc2_out_vector[i] / (MULTIP_fc2*MULTIP_fc2);
+            INTfc2_out_vector[i] = INTfc2_out_vector[i] / (INPUT_MULTIP*INPUT_MULTIP);
             
         }
 
@@ -395,15 +405,29 @@ main(){
     ////////////////////////// Result Classes
         //printf("\n############################################################## RESULT CLASSES");
 
+        int calculatedLabel;
+        float maxValue;
 
-        float maxValue =  INTfc2_out_vector[0];
-        int calculatedLabel = 0;
-        for (int i = 0; i < 5; i++){
-            if (INTfc2_out_vector[i] > maxValue){
-                maxValue = INTfc2_out_vector[i];
-                calculatedLabel = i;
+        if (CALCULATE_FLOAT == 1){
+            maxValue =  fc2_out_vector[0];
+            calculatedLabel = 0;
+            for (int i = 0; i < 5; i++){
+                if (fc2_out_vector[i] > maxValue){
+                    maxValue = fc2_out_vector[i];
+                    calculatedLabel = i;
+                }
+            }
+        } else {
+            maxValue =  INTfc2_out_vector[0];
+            calculatedLabel = 0;
+            for (int i = 0; i < 5; i++){
+                if (INTfc2_out_vector[i] > maxValue){
+                    maxValue = INTfc2_out_vector[i];
+                    calculatedLabel = i;
+                }
             }
         }
+
 
         if ( targetLabel == calculatedLabel){
             printf("Correct prediction (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
