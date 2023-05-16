@@ -60,20 +60,41 @@ def bin_indices(data, bin_ranges):
 
 # exemplo de uso
 
-if len(sys.argv) > 4:
-    filename = sys.argv[1]
-    n_bins = int(sys.argv[2])
-    mode = sys.argv[3]
-    multiplier = int(sys.argv[4])
+if len(sys.argv) > 3:
+    n_bins = int(sys.argv[1])
+    mode = sys.argv[2]
+    multiplier = int(sys.argv[3])
 else:
-    print("USAGE python quantizate.py FILENAME NUM_BINS MODE MULTIPLICATOR")
-    print("e.g. python quantizate.py 0_weight.txt 16 fixed MULTIPLICATOR")
+    print("USAGE python quantizate.py NUM_BINS MODE MULTIPLICATOR")
+    print("e.g. python quantizate.py 16 fixed MULTIPLICATOR")
     quit(1)
 
 
+## Load all data
+data_0_weight = extract_floats("0_weight.h")
+data_3_weight = extract_floats("3_weight.h")
+data_6_weight = extract_floats("6_weight.h")
+data_fc1_weight = extract_floats("classifier_1_weight.h")
+data_fc2_weight = extract_floats("classifier_2_weight.h")
 
-data = extract_floats(filename)
+data_0_bias = extract_floats("0_bias.h")
+data_3_bias = extract_floats("3_bias.h")
+data_6_bias = extract_floats("6_bias.h")
+data_fc1_bias = extract_floats("classifier_1_bias.h")
+data_fc2_bias = extract_floats("classifier_2_bias.h")
 
+data = np.concatenate([data_0_weight, data_3_weight ])
+data = np.concatenate([data, data_6_weight ])
+data = np.concatenate([data, data_fc1_weight ])
+data = np.concatenate([data, data_fc2_weight ])
+data = np.concatenate([data, data_0_bias ])
+data = np.concatenate([data, data_3_bias ])
+data = np.concatenate([data, data_6_bias ])
+data = np.concatenate([data, data_fc1_bias ])
+data = np.concatenate([data, data_fc2_bias ])
+
+
+########## LUT
 if mode == "fixed":
     print("MODE : FIXED")
     print("BINS : "+ str(n_bins))
@@ -83,57 +104,158 @@ if mode == "variable":
     print("BINS : "+ str(n_bins))
     bin_ranges, lookup_table = calculate_variable_bins(data, n_bins)
 
-indices = bin_indices(data, bin_ranges)
 
+# salva os indices em um arquivo C
+indices_filename = "bins.txt"
+with open(indices_filename, "w") as f:
+    for start, end in bin_ranges:
+        f.write(f"Bin: [{start:.4f}, {end:.4f}]\n")
 
-# # salva os indices em um arquivo C
-# indices_filename = "bins.txt"
-# with open(indices_filename, "w") as f:
-#     for start, end in bin_ranges:
-#         f.write(f"Bin: [{start:.4f}, {end:.4f}]\n")
-
-
-
-if filename == "0_bias.h":
-    arrayName = "conv0_bias"
-if filename == "0_weight.h":
-    arrayName = "conv0_weights"
-
-if filename == "3_bias.h":
-    arrayName = "conv3_bias"
-if filename == "3_weight.h":
-    arrayName = "conv3_weights"
-
-if filename == "6_bias.h":
-    arrayName = "conv6_bias"
-if filename == "6_weight.h":
-    arrayName = "conv6_weights"
-
-if filename == "classifier_1_bias.h":
-    arrayName = "fc1_bias"
-if filename == "classifier_1_weight.h":
-    arrayName = "fc1_weights"
-
-if filename == "classifier_2_bias.h":
-    arrayName = "fc2_bias"
-if filename == "classifier_2_weight.h":
-    arrayName = "fc2_weights"
-
-
-lookup_table_str = "const int " + arrayName + "_lut[%d] = {" % len(lookup_table) + "\n".join([f"{val*multiplier:.0f}," for val in lookup_table])[:-1] + "};\n"
-indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
-
-
-
+lookup_table_str = "const int params_lut[%d] = {" % len(lookup_table) + "\n".join([f"{val*multiplier:.0f}," for val in lookup_table])[:-1] + "};\n"
+# lookup_table_str = "const int params_lut[%d] = {" % len(lookup_table) + "\n".join([f"{val:.4f}," for val in lookup_table])[:-1] + "};\n"
 
 # salva a tabela de busca em um arquivo C
-lookup_table_filename = filename.replace(".h","_lut.h")
+lookup_table_filename = "model_params_lut.h"
 with open(lookup_table_filename, "w") as f:
     f.write(lookup_table_str)
 print(f"Tabela de busca salva em {lookup_table_filename}")
 
+
+
+########## Indices
+
+
+arrayName = "conv0_bias"
+indices = bin_indices(data_0_bias, bin_ranges)
+indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+
 # salva os indices em um arquivo C
-indices_filename = filename.replace(".h","_indices.h")
+indices_filename = "0_bias_indices.h"
 with open(indices_filename, "w") as f:
     f.write(indices_str)
 print(f"Indices salvos em {indices_filename}")
+
+
+
+
+arrayName = "conv0_weights"
+indices = bin_indices(data_0_weight, bin_ranges)
+indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+
+# salva os indices em um arquivo C
+indices_filename = "0_weight_indices.h"
+with open(indices_filename, "w") as f:
+    f.write(indices_str)
+print(f"Indices salvos em {indices_filename}")
+
+
+
+
+arrayName = "conv3_bias"
+indices = bin_indices(data_3_bias, bin_ranges)
+indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+
+# salva os indices em um arquivo C
+indices_filename = "3_bias_indices.h"
+with open(indices_filename, "w") as f:
+    f.write(indices_str)
+print(f"Indices salvos em {indices_filename}")
+
+
+
+
+arrayName = "conv3_weights"
+indices = bin_indices(data_3_weight, bin_ranges)
+indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+
+# salva os indices em um arquivo C
+indices_filename = "3_weight_indices.h"
+with open(indices_filename, "w") as f:
+    f.write(indices_str)
+print(f"Indices salvos em {indices_filename}")
+
+
+
+
+arrayName = "conv6_bias"
+indices = bin_indices(data_6_bias, bin_ranges)
+indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+
+# salva os indices em um arquivo C
+indices_filename = "6_bias_indices.h"
+with open(indices_filename, "w") as f:
+    f.write(indices_str)
+print(f"Indices salvos em {indices_filename}")
+
+
+
+
+arrayName = "conv6_weights"
+indices = bin_indices(data_6_weight, bin_ranges)
+indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+
+# salva os indices em um arquivo C
+indices_filename = "6_weight_indices.h"
+with open(indices_filename, "w") as f:
+    f.write(indices_str)
+print(f"Indices salvos em {indices_filename}")
+
+
+
+
+arrayName = "fc1_bias"
+indices = bin_indices(data_fc1_bias, bin_ranges)
+indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+
+# salva os indices em um arquivo C
+indices_filename = "classifier_1_bias_indices.h"
+with open(indices_filename, "w") as f:
+    f.write(indices_str)
+print(f"Indices salvos em {indices_filename}")
+
+
+
+
+arrayName = "fc1_weights"
+indices = bin_indices(data_fc1_weight, bin_ranges)
+indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+
+# salva os indices em um arquivo C
+indices_filename = "classifier_1_weight_indices.h"
+with open(indices_filename, "w") as f:
+    f.write(indices_str)
+print(f"Indices salvos em {indices_filename}")
+
+
+
+
+arrayName = "fc2_bias"
+indices = bin_indices(data_fc2_bias, bin_ranges)
+indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+
+# salva os indices em um arquivo C
+indices_filename = "classifier_2_bias_indices.h"
+with open(indices_filename, "w") as f:
+    f.write(indices_str)
+print(f"Indices salvos em {indices_filename}")
+
+
+
+
+arrayName = "fc2_weights"
+indices = bin_indices(data_fc2_weight, bin_ranges)
+indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+
+# salva os indices em um arquivo C
+indices_filename = "classifier_2_weight_indices.h"
+with open(indices_filename, "w") as f:
+    f.write(indices_str)
+print(f"Indices salvos em {indices_filename}")
+
+
+
+
+
+
+
+
