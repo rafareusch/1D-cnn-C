@@ -89,7 +89,7 @@ main(){
             }
 
             // Load Current Bias
-            INTconv0_current_bias = (int) (params_lut[conv3_bias_indices[k]]);
+            INTconv0_current_bias = (int) (params_lut[conv0_bias_indices[k]]);
 
 
             // Perform Kernel operation
