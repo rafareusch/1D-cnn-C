@@ -5,8 +5,9 @@ This branch aims to generate an quantized model using LUT tables in integer form
 First, set CALCULATE_FLOAT in model.c accordingly
 
 
-##### Example 128 bins with fixed size, using 1000 offset
-> cd params ; python quantizate.py 128 fixed 1000 ; cd .. ; ./compile ; ./model
+##### Example 128 bins with fixed size, using 1000 offset (SEE NOTE)
+> cd params ; python quantizate.py 128 fixed 1000 ; cd .. ; ./compile ; ./model > results.txt ; ./evaluate
+###### Note, if offset is changed, dataset needs to be normalized manually to correlate to the new value, use the default float dataset120_eval.h
 
 
 ###### Note: The model will run even if ./compile fails (with previous working version), if changes are being made in the model.c file make sure compilation works before running the above lines
