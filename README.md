@@ -6,10 +6,9 @@ First, set CALCULATE_FLOAT in model.c accordingly
 
 
 ##### Example 64 bins with variable size bins
-> cd params; ./quantizate 64 variable; cd ..; ./compile; ./model;
+> cd params; ./quantizate 64 variable 1000; cd ..; ./compile; ./model > results.txt; ./evaluate;
+###### Note: if multiplier is changed, dataset needs to be manually modified to use new multiplication value
 
-##### Example 128 bins with fixed size bins
-> cd params; ./quantizate 128 fixed; cd ..; ./compile; ./model;
 
 ###### Note: The model will run even if ./compile fails (with previous working version), if changes are being made in the model.c file make sure compilation works before running the above lines
 ###### Note: Compile bash contains a supress all warnings command to prevent long compile times due the weights in #include BE CAREFUL
