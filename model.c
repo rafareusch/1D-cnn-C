@@ -50,53 +50,16 @@
 #define FC2_OUTPUT_SIZE 5
 
 
-
-void print_confusion_matrix(int matrix[5][5]) {
-    int i = 0;
-    int j = 0;
-    int n = 5;
-
-    // Imprime a matriz de confusão
-    printf("Confusion Matrix:\n");
-    printf("   ");
-    for (i = 0; i < n; i++) {
-        printf("   %d ", i);
-    }
-    printf("\n\n");
-    for (i = 0; i < n; i++) {
-        printf("%d: ", i);
-        for (j = 0; j < n; j++) {
-            printf("   %d ", matrix[i][j]);
-        }
-        printf("\n");
-    }
-}
-
-
-
-
 main(){
-    printf("Boot... ");
     int i = 0;
     float input_vector[INPUT_SIZE]; 
     int targetLabel;
-    int correctLabels = 0;
-    int wrongLabels = 0;
-    int batchSizeAuxCount = 0;
-    int batchCurrentAdd[5][5];
-    int confusionMatrix[5][5];
-    memset(batchCurrentAdd, 0, sizeof(batchCurrentAdd));
-    memset(confusionMatrix, 0, sizeof(confusionMatrix));
-    int predictedList[DATASET_UNITS];
-    int expectedList[DATASET_UNITS];
-    int listIndex = 0;
-    printf("Evaluating...\n");
 
 for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
 
-    float progress = datasetIndex / (float)DATASET_UNITS;
-    printf("Progress %0.f\n",progress*100);
-    progress = (datasetIndex/DATASET_UNITS)*100;
+    // float progress = datasetIndex / (float)DATASET_UNITS;
+    // // printf("Progress %0.f\n",progress*100);
+    // progress = (datasetIndex/DATASET_UNITS)*100;
 
 
     int startingIndex = datasetIndex * 121; //input + label
@@ -319,43 +282,8 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         }
     }
 
-        if ( targetLabel == calculatedLabel){
-            printf("Correct prediction (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
-            if (batchCurrentAdd[targetLabel][calculatedLabel] == 0){
-                correctLabels++;
-                confusionMatrix[targetLabel][calculatedLabel]++;
-                batchCurrentAdd[targetLabel][calculatedLabel] = 1;
-            }
-        } else {
-            printf("Wrong prediction  (predicted %d) (correct %d)\n",calculatedLabel,targetLabel);
-            if (batchCurrentAdd[targetLabel][calculatedLabel] == 0){
-                wrongLabels++;
-                confusionMatrix[targetLabel][calculatedLabel]++;
-                batchCurrentAdd[targetLabel][calculatedLabel] = 1;
-            }
-        }
-        predictedList[listIndex] = calculatedLabel;
-        expectedList[listIndex] = targetLabel;
-        listIndex++;
-
-
-        /// Update batch size parameters
-        if (batchSizeAuxCount == BATCH_SIZE-1){
-            memset(batchCurrentAdd, 0, sizeof(batchCurrentAdd));
-            batchSizeAuxCount = 0;
-        } else {
-            batchSizeAuxCount += 1;
-        }
+    printf("%d,%d,",calculatedLabel,targetLabel);
     }
-    printf("----------------------\n");
-    printf("Accuracy: %0.1f\n",(float)correctLabels/((float)correctLabels + (float)wrongLabels)*100);
-    printf("----------\n");
-    printf("Correct predictions: %d \n",correctLabels);
-    printf("Wrong predictions: %d \n",wrongLabels);
-    printf("----------------------\n");
-    printf("Confusion Matrix\n");
-    print_confusion_matrix(confusionMatrix);
-    printf(" \n------------------------------------------------------------- End..");
     return 0;
 }
 

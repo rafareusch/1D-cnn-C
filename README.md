@@ -4,10 +4,10 @@ This branch aims to generate an quantized model using LUT tables and various tec
 ### To run this branch:
 
 ##### Example 64 bins with variable size bins
-> cd params; ./quantizate 64 variable; cd ..; ./compile; ./model;
+> cd params; ./quantizate 64 variable; cd ..; ./compile; ./model > reuslts.txt; ./evaluate
 
 ##### Example 128 bins with fixed size bins
-> cd params; ./quantizate 128 fixed; cd ..; ./compile; ./model;
+> cd params; ./quantizate 128 fixed; cd ..; ./compile; ./model > reuslts.txt; ./evaluate;
 
 ###### Note: The model will run even if ./compile fails (with previous working version), if changes are being made in the model.c file make sure compilation works before running the above lines
 
