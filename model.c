@@ -2,16 +2,16 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "params/0_bias.h"
-#include "params/3_bias.h"
-#include "params/6_bias.h"
-#include "params/0_weight.h"
-#include "params/3_weight.h"
-#include "params/6_weight.h"
-#include "params/classifier_1_weight.h"
-#include "params/classifier_2_weight.h"
-#include "params/classifier_1_bias.h"
-#include "params/classifier_2_bias.h"
+#include "params/0_bias_int.h"
+#include "params/3_bias_int.h"
+#include "params/6_bias_int.h"
+#include "params/0_weight_int.h"
+#include "params/3_weight_int.h"
+#include "params/6_weight_int.h"
+#include "params/classifier_1_weight_int.h"
+#include "params/classifier_2_weight_int.h"
+#include "params/classifier_1_bias_int.h"
+#include "params/classifier_2_bias_int.h"
 
 
 //// Main defines
@@ -29,6 +29,7 @@
 
 
 // INT CNN defines
+// Do not change these values if you don't know what you are doing, many files must be changed accordingly
 #define MULTIP_conv1 1000
 #define MULTIP_conv3 1000
 #define MULTIP_conv6 1000
@@ -66,11 +67,11 @@ main(){
             // Load Current Weights
             for (i = 0; i < KERNEL_SIZE; i++)
             {
-                INTconv0_currentKernel[i] = (int) (MULTIP_conv1 * conv0_weights[i + (k * KERNEL_SIZE)]);
+                INTconv0_currentKernel[i] = (int) (conv0_weights[i + (k * KERNEL_SIZE)]);
             }
 
             // Load Current Bias
-            INTconv0_current_bias = (int) (MULTIP_conv1 * conv0_bias[k]);
+            INTconv0_current_bias = (int) (conv0_bias[k]);
 
 
             // Perform Kernel operation
@@ -123,10 +124,10 @@ main(){
                         int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
                         int indexIn = kernelIndex + (inputOffset);
 
-                        INTconv3_totalSum += ((INTconv0_featureMap[filterIn][indexIn] * MULTIP_conv3) / MULTIP_conv1)    *  ((int) (conv3_weights[weightIndex] * MULTIP_conv3))  ; 
+                        INTconv3_totalSum += ((INTconv0_featureMap[filterIn][indexIn] * MULTIP_conv3) / MULTIP_conv1)    *  ((int) (conv3_weights[weightIndex]))  ; 
                     }
                 }
-                INTconv3_totalSum += ( (int) conv3_bias[filterToGenerate] * MULTIP_conv3);
+                INTconv3_totalSum += ( (int) conv3_bias[filterToGenerate]);
                 INTconv3_featureMap[filterToGenerate][inputOffset] = INTconv3_totalSum;
             }
         }
@@ -169,10 +170,10 @@ main(){
                     for (int kernelIndex = 0 ; kernelIndex < KERNEL_SIZE ; kernelIndex++){
                         int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
                         int indexIn = kernelIndex + (inputOffset);
-                        INTconv6_totalSum += ((INTconv3_featureMap[filterIn][indexIn] * MULTIP_conv6)/MULTIP_conv3) * ((int) (conv6_weights[weightIndex] * MULTIP_conv6));
+                        INTconv6_totalSum += ((INTconv3_featureMap[filterIn][indexIn] * MULTIP_conv6)/MULTIP_conv3) * ((int) (conv6_weights[weightIndex]));
                     }
                 }
-                INTconv6_totalSum += ( (int) conv6_bias[filterToGenerate] * MULTIP_conv6);
+                INTconv6_totalSum += ( (int) conv6_bias[filterToGenerate]);
                 INTconv6_featureMap[filterToGenerate][inputOffset] = INTconv6_totalSum;
             }
         }
@@ -232,9 +233,9 @@ main(){
             INTtotalValue = 0;
             for (int i = 0; i < fc1_inputSize; i++)
             {
-                INTtotalValue += ((INTflatten1_vector[i]*MULTIP_fc1)/MULTIP_conv6) * ( (int) (fc1_weights[(fc1_inputSize*outputIndex)+i] * MULTIP_fc1) );
+                INTtotalValue += ((INTflatten1_vector[i]*MULTIP_fc1)/MULTIP_conv6) * ( (int) (fc1_weights[(fc1_inputSize*outputIndex)+i]) );
             }
-            INTfc1_out_vector[outputIndex] = INTtotalValue + ((int) fc1_bias[outputIndex]*MULTIP_fc1);
+            INTfc1_out_vector[outputIndex] = INTtotalValue + ((int) fc1_bias[outputIndex]);
         }
 
 
@@ -264,10 +265,10 @@ main(){
             // if ( datasetIndex == 4)  printf("totalvalue------");
             for (int i = 0; i < FC1_OUTPUT_SIZE; i++)
             {
-                INTfc2_totalValue += ((INTfc1_out_vector[i] * MULTIP_fc2 ) / MULTIP_fc1) * ( (int) (fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i]*(MULTIP_fc2))); 
+                INTfc2_totalValue += ((INTfc1_out_vector[i] * MULTIP_fc2 ) / MULTIP_fc1) * ( (int) (fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i])); 
                 // if ( datasetIndex == 4) printf("%f  %d \n ",fc2_totalValue,INTfc2_totalValue);
             }
-            INTfc2_out_vector[outputIndex] = INTfc2_totalValue + ( (int) fc2_bias[outputIndex] * MULTIP_fc2 );
+            INTfc2_out_vector[outputIndex] = INTfc2_totalValue + ( (int) fc2_bias[outputIndex]);
             // if ( datasetIndex == 4) printf("%f  %d \n ",fc2_out_vector[outputIndex],INTfc2_out_vector[outputIndex]);
         }
 
