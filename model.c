@@ -2,38 +2,19 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "params/0_bias_lut.h"
 #include "params/0_bias_indices.h"
-#include "params/3_bias_lut.h"
 #include "params/3_bias_indices.h"
-#include "params/6_bias_lut.h"
 #include "params/6_bias_indices.h"
-#include "params/0_weight_lut.h"
 #include "params/0_weight_indices.h"
-#include "params/3_weight_lut.h"
 #include "params/3_weight_indices.h"
-#include "params/6_weight_lut.h"
 #include "params/6_weight_indices.h"
-#include "params/classifier_1_weight_lut.h"
 #include "params/classifier_1_weight_indices.h"
-#include "params/classifier_2_weight_lut.h"
 #include "params/classifier_2_weight_indices.h"
-#include "params/classifier_1_bias_lut.h"
 #include "params/classifier_1_bias_indices.h"
-#include "params/classifier_2_bias_lut.h"
 #include "params/classifier_2_bias_indices.h"
+#include "params/model_params_lut.h"
 
 
-// #include "params/0_bias.h"
-// #include "params/3_bias.h"
-// #include "params/6_bias.h"
-// #include "params/0_weight.h"
-// #include "params/3_weight.h"
-// #include "params/6_weight.h"
-// #include "params/classifier_1_weight.h"
-// #include "params/classifier_2_weight.h"
-// #include "params/classifier_1_bias.h"
-// #include "params/classifier_2_bias.h"
 
 #include "params/dataset120_eval.h" // 3923 
 #define DATASET_UNITS 3923
@@ -57,11 +38,6 @@ main(){
 
 for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
 
-    // float progress = datasetIndex / (float)DATASET_UNITS;
-    // // printf("Progress %0.f\n",progress*100);
-    // progress = (datasetIndex/DATASET_UNITS)*100;
-
-
     int startingIndex = datasetIndex * 121; //input + label
     targetLabel = dataset120[startingIndex + INPUT_SIZE];
 
@@ -81,15 +57,11 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         // Load Current Weights
         for (i = 0; i < KERNEL_SIZE; i++)
         {
-            // conv0_currentKernel[i] =   conv0_weights[i + (k * KERNEL_SIZE)];
-            conv0_currentKernel[i] =   conv0_weights_lut[conv0_weights_indices[i + (k * KERNEL_SIZE)]];
-            // printf("%f   %f (%d)  \n",conv0_weights[i + (k * KERNEL_SIZE)], conv0_weights_lut[ conv0_weights_indices[i + (k * KERNEL_SIZE)] ],conv0_weights_indices[i + (k * KERNEL_SIZE)] );
+            conv0_currentKernel[i] =   params_lut[conv0_weights_indices[i + (k * KERNEL_SIZE)]];
         }
 
         // Load Current Bias
-        // conv0_current_bias = conv0_bias[k];
-        conv0_current_bias = conv0_bias_lut[conv0_bias_indices[k]];
-        // printf("%f   %f (%d)    Err:%f \n",conv0_bias[k], conv0_bias_lut[conv0_bias_indices[k]],conv0_bias_indices[k], conv0_bias[k]-conv0_bias_lut[conv0_bias_indices[k]] );
+        conv0_current_bias = params_lut[conv0_bias_indices[k]];
         
 
 
@@ -133,15 +105,10 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
                 for (int kernelIndex = 0 ; kernelIndex < KERNEL_SIZE ; kernelIndex++){
                     int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
                     int indexIn = kernelIndex + (inputOffset);
-                    // conv3_totalSum += conv0_featureMap[filterIn][indexIn] * conv3_weights[weightIndex]; 
-                    conv3_totalSum += conv0_featureMap[filterIn][indexIn] * conv3_weights_lut[conv3_weights_indices[weightIndex]];
-                    // printf("%f   %f (%d)    Err:%f \n", conv3_weights[weightIndex] , conv3_weights_lut[conv3_weights_indices[weightIndex]], conv3_weights_indices[weightIndex], conv3_weights[weightIndex] - conv3_weights_lut[conv3_weights_indices[weightIndex]] );
-                    // printf("%f   %f (%d)    Err:%f \n", aaa , bbbb, ccccc, aaa - bbb );
+                    conv3_totalSum += conv0_featureMap[filterIn][indexIn] * params_lut[conv3_weights_indices[weightIndex]];
                 }
             }
-            // conv3_totalSum += conv3_bias[filterToGenerate];
-            conv3_totalSum += conv3_bias_lut[conv3_bias_indices[filterToGenerate]];
-            // printf("%f   %f (%d)    Err:%f \n", conv3_bias[filterToGenerate] , conv3_bias_lut[conv3_bias_indices[filterToGenerate]], conv3_bias_indices[filterToGenerate], conv3_bias[filterToGenerate] - conv3_bias_lut[conv3_bias_indices[filterToGenerate]] );
+            conv3_totalSum += params_lut[conv3_bias_indices[filterToGenerate]];
             conv3_featureMap[filterToGenerate][inputOffset] = conv3_totalSum;
         }
     }
@@ -174,15 +141,10 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
                 for (int kernelIndex = 0 ; kernelIndex < KERNEL_SIZE ; kernelIndex++){
                     int weightIndex = kernelIndex + (filterIn * KERNEL_SIZE) + ( filterToGenerate * NUM_FILTERS * KERNEL_SIZE ) ;
                     int indexIn = kernelIndex + (inputOffset);
-                    // totalSum += conv3_featureMap[filterIn][indexIn] * conv6_weights[weightIndex]; 
-                    totalSum += conv3_featureMap[filterIn][indexIn] * conv6_weights_lut[conv6_weights_indices[weightIndex]]; 
-                    // printf("%f   %f (%d)    Err:%f \n", conv6_weights[weightIndex] , conv6_weights_lut[conv6_weights_indices[weightIndex]], conv6_weights_indices[weightIndex], conv6_weights[weightIndex] - conv6_weights_lut[conv6_weights_indices[weightIndex]] );
+                    totalSum += conv3_featureMap[filterIn][indexIn] * params_lut[conv6_weights_indices[weightIndex]]; 
                 }
             }
-            // totalSum += conv6_bias[filterToGenerate];
-            totalSum += conv6_bias_lut[conv6_bias_indices[filterToGenerate]];
-            // printf("%f   %f (%d)    Err:%f \n", conv6_bias[filterToGenerate] , conv6_bias_lut[conv6_bias_indices[filterToGenerate]], conv6_bias_indices[filterToGenerate], conv6_bias[filterToGenerate] - conv6_bias_lut[conv6_bias_indices[filterToGenerate]] );
-            // printf("%f   %f (%d)    Err:%f \n", aaa , bbbb, ccccc, aaa - bbb );
+            totalSum += params_lut[conv6_bias_indices[filterToGenerate]];
             conv6_featureMap[filterToGenerate][inputOffset] = totalSum;
         }
     }
@@ -231,13 +193,9 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         totalValue = 0;
         for (int i = 0; i < fc1_inputSize; i++)
         {
-            //totalValue += flatten1_vector[i] * fc1_weights[(fc1_inputSize*outputIndex)+i];
-            totalValue += flatten1_vector[i] * fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]];
-            //printf("%f   %f (%d)    Err:%f \n", fc1_weights[(fc1_inputSize*outputIndex)+i] , fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]], fc1_weights_indices[(fc1_inputSize*outputIndex)+i], fc1_weights[(fc1_inputSize*outputIndex)+i] - fc1_weights_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]] );
-            // printf("%f   %f (%d)    Err:%f \n", aaa , bbbb, ccccc, aaa - bbb );
+            totalValue += flatten1_vector[i] * params_lut[fc1_weights_indices[(fc1_inputSize*outputIndex)+i]];
         }
-        //fc1_out_vector[outputIndex] = totalValue + fc1_bias[outputIndex];
-        fc1_out_vector[outputIndex] = totalValue + fc1_bias_lut[fc1_bias_indices[outputIndex]];
+        fc1_out_vector[outputIndex] = totalValue + params_lut[fc1_bias_indices[outputIndex]];
     }
 
 
@@ -257,11 +215,9 @@ for(int datasetIndex = 0 ; datasetIndex < DATASET_UNITS ; datasetIndex++ ){
         fc2_totalValue = 0;
         for (int i = 0; i < FC1_OUTPUT_SIZE; i++)
         {
-            //fc2_totalValue += fc1_out_vector[i] * fc2_weights[(FC1_OUTPUT_SIZE*outputIndex)+i];
-            fc2_totalValue += fc1_out_vector[i] * fc2_weights_lut[fc2_weights_indices[(FC1_OUTPUT_SIZE*outputIndex)+i]];
+            fc2_totalValue += fc1_out_vector[i] * params_lut[fc2_weights_indices[(FC1_OUTPUT_SIZE*outputIndex)+i]];
         }
-        //fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias[outputIndex];
-        fc2_out_vector[outputIndex] = fc2_totalValue + fc2_bias_lut[fc2_bias_indices[outputIndex]];
+        fc2_out_vector[outputIndex] = fc2_totalValue + params_lut[fc2_bias_indices[outputIndex]];
     }
 
 
