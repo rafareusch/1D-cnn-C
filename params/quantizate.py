@@ -1,4 +1,5 @@
 import re
+import statistics
 import sys
 import numpy as np
 import string
@@ -24,11 +25,27 @@ def calculate_bin_ranges(data, n_bins):
     lookup_table = []
     for i in range(n_bins):
         bin_start = data_min + i*bin_size
-        bin_end = data_min + (i+1)*bin_size
+        bin_end = data_min + (i+1)*bin_size        
         bin_midpoint = (bin_start + bin_end) / 2
         bin_ranges.append((bin_start, bin_end))
         lookup_table.append(bin_midpoint)
     return bin_ranges, lookup_table
+
+def calculate_bin_ranges_median(data, n_bins):
+    data_min = np.min(data)
+    data_max = np.max(data)
+    bin_size = (data_max - data_min) / n_bins
+    bin_ranges = []
+    lookup_table = []
+    for i in range(n_bins):
+        bin_start = data_min + i * bin_size
+        bin_end = data_min + (i + 1) * bin_size
+        bin_values = [value for value in data if bin_start <= value < bin_end]
+        bin_midpoint = statistics.mean(bin_values) if bin_values else (bin_start + bin_end) / 2
+        bin_ranges.append((bin_start, bin_end))
+        lookup_table.append(bin_midpoint)
+    return bin_ranges, lookup_table
+
 
 def calculate_variable_bins(data, n_bins):
     sorted_data = sorted(data)
@@ -51,6 +68,27 @@ def calculate_variable_bins(data, n_bins):
     return bin_ranges, lookup_table
 
 
+def calculate_variable_bins_median_midpoint(data, n_bins):
+    sorted_data = sorted(data)
+    bin_sizes = np.zeros(n_bins)
+    bin_edges = np.zeros(n_bins + 1)
+    bin_edges[0] = sorted_data[0]
+    for i in range(1, n_bins):
+        bin_sizes[i-1] = len(sorted_data) / n_bins
+        bin_edges[i] = sorted_data[int(i * bin_sizes[i-1])]
+    bin_sizes[-1] = len(sorted_data) / n_bins
+    bin_edges[-1] = sorted_data[-1]
+    bin_ranges = []
+    lookup_table = []
+    for i in range(n_bins):
+        bin_start = bin_edges[i]
+        bin_end = bin_edges[i+1]
+        bin_values = [value for value in sorted_data if bin_start <= value < bin_end]
+        bin_midpoint = statistics.median(bin_values) if bin_values else (bin_start + bin_end) / 2
+        bin_ranges.append((bin_start, bin_end))
+        lookup_table.append(bin_midpoint)
+    return bin_ranges, lookup_table
+
 # função que converte um vetor de floats em um vetor de inteiros que apontam para o bin correspondente
 def bin_indices(data, bin_ranges):
     indices = np.zeros_like(data, dtype=np.int32)
@@ -62,7 +100,7 @@ def bin_indices(data, bin_ranges):
 
 # exemplo de uso
 
-if len(sys.argv) > 2:
+if len(sys.argv) > 2 and len(sys.argv) < 4:
     n_bins = int(sys.argv[1])
     mode = sys.argv[2]
 else:
@@ -100,10 +138,19 @@ if mode == "fixed":
     print("MODE : FIXED")
     print("BINS : "+ str(n_bins))
     bin_ranges, lookup_table = calculate_bin_ranges(data, n_bins)
+if mode == "fixed_median":
+    print("MODE : FIXED MEDIAN")
+    print("BINS : "+ str(n_bins))
+    bin_ranges, lookup_table = calculate_bin_ranges_median(data, n_bins)
 if mode == "variable":
     print("MODE : VARIABLE")
     print("BINS : "+ str(n_bins))
     bin_ranges, lookup_table = calculate_variable_bins(data, n_bins)
+if mode == "variable_median":
+    print("MODE : VARIABLE MEDIAN")
+    print("BINS : "+ str(n_bins))
+    bin_ranges, lookup_table =  calculate_variable_bins_median_midpoint(data, n_bins)
+
 
 
 # salva os indices em um arquivo C
@@ -113,15 +160,12 @@ with open(indices_filename, "w") as f:
         f.write(f"Bin: [{start:.4f}, {end:.4f}]\n")
 
 lookup_table_str = "const float params_lut[%d] = {" % len(lookup_table) + "\n".join([f"{val:.4f}," for val in lookup_table])[:-1] + "};\n"
-# lookup_table_str = "const int params_lut[%d] = {" % len(lookup_table) + "\n".join([f"{val:.4f}," for val in lookup_table])[:-1] + "};\n"
-
 
 # salva a tabela de busca em um arquivo C
 lookup_table_filename = "model_params_lut.h"
 with open(lookup_table_filename, "w") as f:
     f.write(lookup_table_str)
 print(f"Tabela de busca salva em {lookup_table_filename}")
-
 
 
 ########## Indices
