@@ -1,0 +1,4 @@
+ gcc -o model model.c -w
+ ./model > results.txt
+ ./evaluate
+

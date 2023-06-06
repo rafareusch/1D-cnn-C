@@ -4,9 +4,6 @@ import numpy as np
 import string
 
 
-
-
-
 # função que extrai os floats do arquivo
 def extract_floats(filename):
     with open(filename) as f:
@@ -86,6 +83,21 @@ if mode == "variable":
 indices = bin_indices(data, bin_ranges)
 
 
+
+## Lógica para criar um vetor de 32 bits onde cada valor ocupa 4
+N = len(indices)
+tamanho_vetor_32_bits = (N + 7) // 8
+indices_32bit = np.zeros(tamanho_vetor_32_bits, dtype=np.uint32)
+for i in range(N):
+    valor = indices[i] & 0x0F  
+    indice_vetor_32_bits = i // 8
+    posicao_bits = (i % 8) * 4
+    indices_32bit[indice_vetor_32_bits] |= (valor << posicao_bits)
+
+
+
+
+
 # # salva os indices em um arquivo C
 # indices_filename = "bins.txt"
 # with open(indices_filename, "w") as f:
@@ -121,7 +133,7 @@ if filename == "classifier_2_weight.h":
 
 
 lookup_table_str = "const int " + arrayName + "_lut[%d] = {" % len(lookup_table) + "\n".join([f"{val*multiplier:.0f}," for val in lookup_table])[:-1] + "};\n"
-indices_str = "const unsigned char " + arrayName + "_indices[%d] = {" % len(indices) + "\n".join([f"{val}," for val in indices])[:-1] + "};\n"
+indices_str_32bit = "const unsigned int " + arrayName + "_indices_compressed[%d] = {" % len(indices_32bit) + "\n".join([f"{val}," for val in indices_32bit])[:-1] + "};\n"
 
 
 
@@ -132,8 +144,14 @@ with open(lookup_table_filename, "w") as f:
     f.write(lookup_table_str)
 print(f"Tabela de busca salva em {lookup_table_filename}")
 
+# # salva os indices em um arquivo C
+# indices_filename = filename.replace(".h","_indices.h")
+# with open(indices_filename, "w") as f:
+#     f.write(indices_str)
+# print(f"Indices salvos em {indices_filename}")
+
 # salva os indices em um arquivo C
-indices_filename = filename.replace(".h","_indices.h")
-with open(indices_filename, "w") as f:
-    f.write(indices_str)
-print(f"Indices salvos em {indices_filename}")
+indices_filename_32bit = filename.replace(".h","_indices_compressed.h")
+with open(indices_filename_32bit, "w") as f:
+    f.write(indices_str_32bit)
+print(f"Indices salvos em {indices_filename_32bit}")

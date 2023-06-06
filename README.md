@@ -1,4 +1,4 @@
-# Quantized CNN integer
+# Quantized CNN integer + compressed
 This branch aims to generate an quantized model using LUT tables in integer form
 
 ### To run this branch:
@@ -6,7 +6,8 @@ First, set CALCULATE_FLOAT in model.c accordingly
 
 
 ##### Example 64 bins with variable size bins
-> cd params; ./quantizate 64 variable 1000; cd ..; ./compile; ./model > results.txt; ./evaluate;
+> cd params; ./quantizate 16 variable 1000; cd ..; ./compile; ./model > results.txt; ./evaluate;
+###### Note: This branch uses compressed data, any number of bins greater than 16 will led to problematic behavior
 ###### Note: if multiplier is changed, dataset needs to be manually modified to use new multiplication value
 
 
